@@ -30,8 +30,15 @@ class LoggingInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     if (kDebugMode) {
-      debugPrint('<-- ERROR ${err.response?.statusCode} ${err.requestOptions.path}');
-      debugPrint('Message: ${err.message}');
+      debugPrint('┌───────────────────── [API ERROR RESPONSE] ─────────────────────');
+      debugPrint('│ Endpoint: ${err.requestOptions.method.toUpperCase()} ${err.requestOptions.baseUrl}${err.requestOptions.path}');
+      debugPrint('│ Status Code: ${err.response?.statusCode ?? "No status"}');
+      debugPrint('│ Dio Message: ${err.message}');
+      if (err.requestOptions.data != null) {
+        debugPrint('│ Sent Body: ${_maskSensitive(err.requestOptions.data)}');
+      }
+      debugPrint('│ API Error Response: ${err.response?.data}');
+      debugPrint('└───────────────────────────────────────────────────────────────');
     }
     handler.next(err);
   }

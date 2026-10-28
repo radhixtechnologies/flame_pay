@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../../app/routes/app_routes.dart';
 
+import '../../../core/utils/app_snackbar.dart';
+
 class LoginController extends GetxController {
   final AuthRepository _repo = Get.find<AuthRepository>();
 
@@ -26,16 +28,19 @@ class LoginController extends GetxController {
       final name = nameController.text.trim();
       final res = await _repo.sendOtp(phone);
       if (res.success) {
+        if (res.message.isNotEmpty) {
+          AppSnackbar.showSuccess(res.message);
+        }
         Get.toNamed(AppRoutes.otp, arguments: {
           'phone': phone,
           if (name.isNotEmpty) 'name': name,
           'isNewUser': isNewUser.value,
         });
       } else {
-        Get.snackbar('Error', res.message, backgroundColor: Colors.red.shade100);
+        AppSnackbar.showError(res.message, title: 'API Error');
       }
     } catch (e) {
-      Get.snackbar('Error', e.toString(), backgroundColor: Colors.red.shade100);
+      AppSnackbar.showError(e, title: 'API Error');
     } finally {
       isSendingOtp.value = false;
     }

@@ -6,6 +6,7 @@ import '../../../core/services/storage_service.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../../app/routes/app_routes.dart';
+import '../../../core/utils/app_snackbar.dart';
 
 class OtpController extends GetxController {
   final AuthRepository _repo = Get.find<AuthRepository>();
@@ -52,10 +53,12 @@ class OtpController extends GetxController {
       final res = await _repo.sendOtp(phone);
       if (res.success) {
         startResendTimer();
-        Get.snackbar('Success', 'New OTP sent to +91 $phone', backgroundColor: Colors.green.shade100);
+        AppSnackbar.showSuccess(res.message.isNotEmpty ? res.message : 'New OTP sent to +91 $phone');
+      } else {
+        AppSnackbar.showError(res.message, title: 'API Error');
       }
     } catch (e) {
-      Get.snackbar('Error', e.toString(), backgroundColor: Colors.red.shade100);
+      AppSnackbar.showError(e, title: 'API Error');
     }
   }
 
@@ -63,7 +66,7 @@ class OtpController extends GetxController {
     final otp = otpController.text.trim();
     final otpError = Validators.validateOtp(otp);
     if (otpError != null) {
-      Get.snackbar('Validation', otpError, backgroundColor: Colors.orange.shade100);
+      AppSnackbar.showWarning(otpError);
       return;
     }
     if (isVerifyingOtp.value) return;
@@ -96,10 +99,10 @@ class OtpController extends GetxController {
           }
         }
       } else {
-        Get.snackbar('Error', res.message, backgroundColor: Colors.red.shade100);
+        AppSnackbar.showError(res.message, title: 'API Error');
       }
     } catch (e) {
-      Get.snackbar('Error', e.toString(), backgroundColor: Colors.red.shade100);
+      AppSnackbar.showError(e, title: 'API Error');
     } finally {
       isVerifyingOtp.value = false;
     }

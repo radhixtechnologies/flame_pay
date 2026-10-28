@@ -18,6 +18,8 @@ class WalletController extends GetxController {
 
   // Add Money Form
   final addAmountController = TextEditingController(text: '500');
+  final utrController = TextEditingController();
+  final RxMap<String, dynamic> bankDetails = <String, dynamic>{}.obs;
   final RxInt selectedQuickAmount = 500.obs;
   final RxString selectedPaymentMethod = 'UPI (Google Pay / PhonePe)'.obs;
   final RxBool isAddingMoney = false.obs;
@@ -33,6 +35,7 @@ class WalletController extends GetxController {
   void onInit() {
     super.onInit();
     fetchWalletData();
+    fetchBankDetails();
   }
 
   Future<void> fetchWalletData() async {
@@ -119,5 +122,74 @@ class WalletController extends GetxController {
   void onClose() {
     addAmountController.dispose();
     super.onClose();
+  }
+
+  Future<void> fetchBankDetails() async {
+    try {
+      final res = await _repo.getBankDetails();
+      if (res.success && res.data != null) {
+        bankDetails.assignAll(res.data!);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> submitTopupRequest() async {
+    final amtText = addAmountController.text.trim();
+    final validationError = Validators.validateAmount(amtText, min: 10, max: 50000);
+    if (validationError != null) {
+      Get.snackbar('Validation', validationError, backgroundColor: Colors.orange.shade100);
+      return;
+    }
+
+    final utr = utrController.text.trim();
+    if (utr.isEmpty || utr.length < 8) {
+      Get.snackbar('Validation', 'Please enter valid 12-digit UTR / Reference number after payment', backgroundColor: Colors.orange.shade100);
+      return;
+    }
+
+    final amt = double.parse(amtText);
+    isAddingMoney.value = true;
+    try {
+      final res = await _repo.requestTopup(
+        amount: amt,
+        utrNumber: utr,
+        paymentMethod: selectedPaymentMethod.value,
+      );
+
+      if (res.success) {
+        utrController.clear();
+        Get.defaultDialog(
+          title: 'Deposit Request Submitted',
+          titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+          content: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                const Icon(Icons.check_circle_outline, color: Colors.green, size: 54),
+                const SizedBox(height: 12),
+                Text(
+                  'Deposit of ₹${amt.toStringAsFixed(0)} is submitted for Admin verification.\n\nOnce verified in SBI account (32823806111), your wallet will be credited.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          textConfirm: 'OK',
+          confirmTextColor: Colors.white,
+          buttonColor: Colors.green,
+          onConfirm: () {
+            Get.back();
+            fetchWalletData();
+          },
+        );
+      } else {
+        Get.snackbar('Error', res.message, backgroundColor: Colors.red.shade100);
+      }
+    } catch (e) {
+      Get.snackbar('Error', e.toString(), backgroundColor: Colors.red.shade100);
+    } finally {
+      isAddingMoney.value = false;
+    }
   }
 }

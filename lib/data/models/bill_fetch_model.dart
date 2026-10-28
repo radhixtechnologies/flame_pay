@@ -1,4 +1,4 @@
-class BillFetchModel {
+﻿class BillFetchModel {
   final String billerId;
   final String billerName;
   final String consumerNumber;
@@ -25,16 +25,20 @@ class BillFetchModel {
 
   factory BillFetchModel.fromJson(Map<String, dynamic> json) {
     return BillFetchModel(
-      billerId: json['billerId'] as String,
-      billerName: json['billerName'] as String,
-      consumerNumber: json['consumerNumber'] as String,
-      consumerName: json['consumerName'] as String,
-      billAmount: (json['billAmount'] as num).toDouble(),
-      dueDate: json['dueDate'] as String,
-      lateFee: (json['lateFee'] as num?)?.toDouble() ?? 0.0,
-      billDate: json['billDate'] as String,
-      billNumber: json['billNumber'] as String,
-      category: json['category'] as String,
+      billerId: json['billerId']?.toString() ?? '',
+      billerName: json['billerName']?.toString() ?? 'Utility Biller',
+      consumerNumber: json['consumerNumber']?.toString() ?? '',
+      consumerName: json['consumerName']?.toString() ?? 'Consumer',
+      billAmount: (json['billAmount'] is num)
+          ? (json['billAmount'] as num).toDouble()
+          : (double.tryParse(json['billAmount']?.toString() ?? '0') ?? 0.0),
+      dueDate: json['dueDate']?.toString() ?? 'Due Soon',
+      lateFee: (json['lateFee'] is num)
+          ? (json['lateFee'] as num).toDouble()
+          : (double.tryParse(json['lateFee']?.toString() ?? '0') ?? 0.0),
+      billDate: json['billDate']?.toString() ?? 'Recent',
+      billNumber: json['billNumber']?.toString() ?? '',
+      category: json['category']?.toString() ?? 'utility',
     );
   }
 

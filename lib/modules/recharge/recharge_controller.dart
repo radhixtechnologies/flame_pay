@@ -53,6 +53,51 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
       selectedTab.value = 1;
     }
 
+    mobileController.addListener(_onMobileChanged);
+    if (mobileController.text.length == 10) {
+      autoDetectOperator(mobileController.text);
+    } else {
+      fetchPlans();
+    }
+  }
+
+  
+  String _lastCheckedMobile = '';
+  void _onMobileChanged() {
+    final text = mobileController.text.trim();
+    if (text.length == 10 && text != _lastCheckedMobile) {
+      _lastCheckedMobile = text;
+      autoDetectOperator(text);
+    }
+  }
+
+  Future<void> autoDetectOperator(String phone) async {
+    final clean = phone.replaceAll(RegExp(r'[^0-9]'), '');
+    if (clean.length == 10) {
+      try {
+        final res = await _repo.checkOperator(clean);
+        if (res.success && res.data != null) {
+          final opName = (res.data!['operator'] as String? ?? '').toLowerCase();
+          final cirName = (res.data!['circle'] as String? ?? '');
+
+          // Auto-match Operator
+          for (final op in MockRechargeData.mobileOperators) {
+            if (opName.contains(op.id.toLowerCase()) || op.name.toLowerCase().contains(opName) || op.id.toLowerCase().contains(opName)) {
+              selectedMobileOperator.value = op;
+              break;
+            }
+          }
+
+          // Auto-match Circle
+          if (cirName.isNotEmpty) {
+            selectedCircle.value = cirName;
+          }
+
+          fetchPlans();
+          return;
+        }
+      } catch (_) {}
+    }
     fetchPlans();
   }
 
@@ -74,9 +119,31 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
   }
 
   List<RechargePlanModel> get filteredPlans {
-    return allPlans.where((p) => p.category == selectedCategory.value).toList();
+    final cat = selectedCategory.value.toLowerCase();
+    final list = allPlans.where((p) {
+      final pCat = p.category.toLowerCase();
+      if (cat == 'recommended') {
+        return pCat.contains('recommended') || p.isPopular;
+      }
+      if (cat == 'popular') {
+        return pCat.contains('popular');
+      }
+      if (cat.contains('unlimited')) {
+        return pCat.contains('unlimited') || p.description.toLowerCase().contains('unlimited');
+      }
+      if (cat.contains('data')) {
+        return pCat.contains('data');
+      }
+      if (cat.contains('annual')) {
+        return pCat.contains('annual') || p.validity.contains('365') || p.validity.contains('336');
+      }
+      return pCat == cat;
+    }).toList();
+
+    return list.isNotEmpty ? list : allPlans;
   }
 
+  
   void onSelectOperator(OperatorModel op) {
     if (selectedTab.value == 0) {
       selectedMobileOperator.value = op;
@@ -138,7 +205,32 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
       if (res.success && res.data != null) {
         Get.off(() => PaymentSuccessView(result: res.data!));
       } else {
-        Get.snackbar('Error', res.message, backgroundColor: Colors.red.shade100);
+        if (res.message.toLowerCase().contains('insufficient') || res.message.toLowerCase().contains('recharge your wallet')) {
+          Get.defaultDialog(
+            title: 'Low Wallet Balance',
+            titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.orange),
+            content: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  const Icon(Icons.account_balance_wallet_outlined, size: 48, color: Colors.orange),
+                  const SizedBox(height: 12),
+                  Text(res.message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14)),
+                ],
+              ),
+            ),
+            textConfirm: 'Add Money to Wallet',
+            confirmTextColor: Colors.white,
+            buttonColor: const Color(0xFFF97316),
+            onConfirm: () {
+              Get.back();
+              Get.toNamed('/wallet');
+            },
+            textCancel: 'Cancel',
+          );
+        } else {
+          Get.snackbar('Error', res.message, backgroundColor: Colors.red.shade100);
+        }
       }
     } catch (e) {
       Get.snackbar('Error', e.toString(), backgroundColor: Colors.red.shade100);
@@ -184,6 +276,7 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
 
   @override
   void onClose() {
+    mobileController.removeListener(_onMobileChanged);
     tabController.dispose();
     mobileController.dispose();
     dthSubscriberController.dispose();

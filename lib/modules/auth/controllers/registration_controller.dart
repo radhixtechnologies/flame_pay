@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../../app/routes/app_routes.dart';
+import '../../../core/utils/app_snackbar.dart';
 
 class RegistrationController extends GetxController {
   final AuthRepository _repo = Get.find<AuthRepository>();
@@ -30,7 +31,7 @@ class RegistrationController extends GetxController {
   Future<void> registerAccount() async {
     if (!registerFormKey.currentState!.validate()) return;
     if (!agreeToTerms.value) {
-      Get.snackbar('Notice', 'Please agree to Terms & Conditions', backgroundColor: Colors.orange.shade100);
+      AppSnackbar.showWarning('Please agree to Terms & Conditions');
       return;
     }
     if (isRegistering.value) return;
@@ -49,10 +50,10 @@ class RegistrationController extends GetxController {
         }
         Get.offAllNamed(AppRoutes.mpinSetup);
       } else {
-        Get.snackbar('Error', res.message, backgroundColor: Colors.red.shade100);
+        AppSnackbar.showError(res.message, title: 'API Error');
       }
     } catch (e) {
-      Get.snackbar('Error', e.toString(), backgroundColor: Colors.red.shade100);
+      AppSnackbar.showError(e, title: 'API Error');
     } finally {
       isRegistering.value = false;
     }

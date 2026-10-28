@@ -57,4 +57,27 @@ class WalletRepository {
           .toList(),
     );
   }
+
+  Future<ApiResponse<Map<String, dynamic>>> getBankDetails() async {
+    return await _apiClient.get<Map<String, dynamic>>(
+      '/wallet/bank-details',
+      fromJson: (json) => json as Map<String, dynamic>,
+    );
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> requestTopup({
+    required double amount,
+    required String utrNumber,
+    required String paymentMethod,
+  }) async {
+    return await _apiClient.post<Map<String, dynamic>>(
+      '/wallet/request-topup',
+      data: {
+        'amount': amount,
+        'utrNumber': utrNumber,
+        'paymentMethod': paymentMethod,
+      },
+      fromJson: (json) => json as Map<String, dynamic>,
+    );
+  }
 }

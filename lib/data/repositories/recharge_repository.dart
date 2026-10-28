@@ -11,6 +11,14 @@ class RechargeRepository {
 
   RechargeRepository({ApiClient? client}) : _client = client ?? ApiClient.instance;
 
+  Future<ApiResponse<Map<String, dynamic>>> checkOperator(String mobile) async {
+    return await _client.post<Map<String, dynamic>>(
+      ApiEndpoints.rechargeOperatorCheck,
+      data: {'mobileNumber': mobile},
+      fromJson: (json) => json as Map<String, dynamic>,
+    );
+  }
+
   Future<ApiResponse<List<OperatorModel>>> getOperators(String type) async {
     return await _client.get<List<OperatorModel>>(
       ApiEndpoints.rechargeOperators,

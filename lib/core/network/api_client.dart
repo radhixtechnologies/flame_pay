@@ -40,6 +40,20 @@ class ApiClient {
 
   Dio get dio => _dio;
 
+  ApiResponse<T> _processResponse<T>(Response response, T Function(dynamic json)? fromJson) {
+    if (response.data is Map) {
+      return ApiResponse<T>.fromJson(
+        Map<String, dynamic>.from(response.data as Map),
+        fromJson,
+        statusCode: response.statusCode,
+      );
+    }
+    return ApiResponse<T>.success(
+      fromJson != null ? fromJson(response.data) : response.data as T,
+      statusCode: response.statusCode ?? 200,
+    );
+  }
+
   Future<ApiResponse<T>> get<T>(
     String path, {
     Map<String, dynamic>? queryParameters,
@@ -52,10 +66,11 @@ class ApiClient {
         queryParameters: queryParameters,
         options: options,
       );
-      return ApiResponse<T>.fromJson(response.data as Map<String, dynamic>, fromJson);
+      return _processResponse<T>(response, fromJson);
     } on DioException catch (e) {
       throw mapDioException(e);
     } catch (e) {
+      if (e is ApiException) rethrow;
       throw UnknownException(e.toString());
     }
   }
@@ -74,10 +89,11 @@ class ApiClient {
         queryParameters: queryParameters,
         options: options,
       );
-      return ApiResponse<T>.fromJson(response.data as Map<String, dynamic>, fromJson);
+      return _processResponse<T>(response, fromJson);
     } on DioException catch (e) {
       throw mapDioException(e);
     } catch (e) {
+      if (e is ApiException) rethrow;
       throw UnknownException(e.toString());
     }
   }
@@ -96,10 +112,11 @@ class ApiClient {
         queryParameters: queryParameters,
         options: options,
       );
-      return ApiResponse<T>.fromJson(response.data as Map<String, dynamic>, fromJson);
+      return _processResponse<T>(response, fromJson);
     } on DioException catch (e) {
       throw mapDioException(e);
     } catch (e) {
+      if (e is ApiException) rethrow;
       throw UnknownException(e.toString());
     }
   }
@@ -118,10 +135,11 @@ class ApiClient {
         queryParameters: queryParameters,
         options: options,
       );
-      return ApiResponse<T>.fromJson(response.data as Map<String, dynamic>, fromJson);
+      return _processResponse<T>(response, fromJson);
     } on DioException catch (e) {
       throw mapDioException(e);
     } catch (e) {
+      if (e is ApiException) rethrow;
       throw UnknownException(e.toString());
     }
   }
@@ -139,10 +157,11 @@ class ApiClient {
         onSendProgress: onSendProgress,
         options: Options(headers: {'Content-Type': 'multipart/form-data'}),
       );
-      return ApiResponse<T>.fromJson(response.data as Map<String, dynamic>, fromJson);
+      return _processResponse<T>(response, fromJson);
     } on DioException catch (e) {
       throw mapDioException(e);
     } catch (e) {
+      if (e is ApiException) rethrow;
       throw UnknownException(e.toString());
     }
   }

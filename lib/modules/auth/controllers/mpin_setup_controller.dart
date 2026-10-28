@@ -4,9 +4,15 @@ import '../../../core/services/storage_service.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../app/routes/app_routes.dart';
 
+import '../../../core/utils/app_snackbar.dart';
+import '../../../data/repositories/auth_repository.dart';
+
 class MpinSetupController extends GetxController {
   final StorageService _storage = Get.find<StorageService>();
   final AuthService _authService = Get.find<AuthService>();
+  final AuthRepository _repo = Get.isRegistered<AuthRepository>()
+      ? Get.find<AuthRepository>()
+      : AuthRepository();
 
   final mpinController = TextEditingController();
   final confirmMpinController = TextEditingController();
@@ -18,11 +24,11 @@ class MpinSetupController extends GetxController {
     final confirm = confirmMpinController.text.trim();
 
     if (mpin.length != 4) {
-      Get.snackbar('Validation', 'MPIN must be 4 digits', backgroundColor: Colors.orange.shade100);
+      AppSnackbar.showWarning('MPIN must be 4 digits');
       return;
     }
     if (mpin != confirm) {
-      Get.snackbar('Validation', 'MPINs do not match', backgroundColor: Colors.orange.shade100);
+      AppSnackbar.showWarning('MPINs do not match');
       return;
     }
     if (isSettingMpin.value) return;
@@ -31,12 +37,17 @@ class MpinSetupController extends GetxController {
     try {
       await _storage.setMpin(mpin);
       await _storage.setBiometricEnabled(enableBiometric.value);
+      try {
+        await _repo.setMpin(mpin);
+      } catch (err) {
+        debugPrint('Backend setMpin notice: $err');
+      }
       _authService.hasMpin.value = true;
       _authService.isAuthenticated.value = true;
-      Get.snackbar('Success', 'MPIN created successfully', backgroundColor: Colors.green.shade100);
+      AppSnackbar.showSuccess('MPIN created successfully');
       Get.offAllNamed(AppRoutes.home);
     } catch (e) {
-      Get.snackbar('Error', e.toString(), backgroundColor: Colors.red.shade100);
+      AppSnackbar.showError(e, title: 'API Error');
     } finally {
       isSettingMpin.value = false;
     }

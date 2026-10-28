@@ -21,6 +21,7 @@ class ApiEndpoints {
   static const String rechargeRecent = '/recharge/recent';
   static const String rechargeOperators = '/recharge/operators';
   static const String rechargePay = '/recharge/pay';
+  static const String rechargeOperatorCheck = '/recharge/operator-check';
 
   static const String billCategories = '/bills/categories';
   static const String billers = '/bills/billers';
