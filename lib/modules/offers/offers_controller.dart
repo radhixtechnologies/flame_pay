@@ -30,9 +30,12 @@ class OffersController extends GetxController {
       final res = await _apiClient.get<List<OfferModel>>(
         ApiEndpoints.offersList,
         queryParameters: selectedCategory.value != 'All' ? {'category': selectedCategory.value} : null,
-        fromJson: (json) => (json as List<dynamic>)
-            .map((e) => OfferModel.fromJson(e as Map<String, dynamic>))
-            .toList(),
+        fromJson: (json) {
+          if (json is List) {
+            return json.map((e) => OfferModel.fromJson(e as Map<String, dynamic>)).toList();
+          }
+          return <OfferModel>[];
+        },
       );
 
       if (res.success && res.data != null) {

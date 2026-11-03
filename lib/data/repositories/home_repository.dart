@@ -21,18 +21,24 @@ class HomeRepository {
     return await _apiClient.get<List<TransactionModel>>(
       ApiEndpoints.transactionsHistory,
       queryParameters: {'limit': 5},
-      fromJson: (json) => (json as List<dynamic>)
-          .map((item) => TransactionModel.fromJson(item as Map<String, dynamic>))
-          .toList(),
+      fromJson: (json) {
+        if (json is List) {
+          return json.map((item) => TransactionModel.fromJson(item as Map<String, dynamic>)).toList();
+        }
+        return <TransactionModel>[];
+      },
     );
   }
 
   Future<ApiResponse<List<OfferModel>>> getOffers() async {
     return await _apiClient.get<List<OfferModel>>(
       ApiEndpoints.offersList,
-      fromJson: (json) => (json as List<dynamic>)
-          .map((item) => OfferModel.fromJson(item as Map<String, dynamic>))
-          .toList(),
+      fromJson: (json) {
+        if (json is List) {
+          return json.map((item) => OfferModel.fromJson(item as Map<String, dynamic>)).toList();
+        }
+        return <OfferModel>[];
+      },
     );
   }
 }
