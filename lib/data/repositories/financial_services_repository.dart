@@ -277,9 +277,26 @@ class FinancialServicesRepository {
       'loan_account_id': 'FP-LN-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}',
       'sanctioned_amount': amount,
       'applicantName': userName ?? 'FlamePay Member',
-      'disbursal_status': 'Disbursed to FlamePay Wallet',
-      'status': 'approved',
+      'disbursal_status': 'Pending Admin Verification & Sanction',
+      'status': 'in_review',
     });
+  }
+
+    Future<ApiResponse<List<Map<String, dynamic>>>> getLoanApplications() async {
+    try {
+      final res = await _apiClient.get<List<Map<String, dynamic>>>(
+        ApiEndpoints.loanHistory,
+        fromJson: (json) {
+          if (json is List) {
+            return json.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          }
+          return <Map<String, dynamic>>[];
+        },
+      );
+      if (res.success && res.data != null) return res;
+    } catch (_) {}
+
+    return ApiResponse.success(<Map<String, dynamic>>[]);
   }
 
   // Insurance

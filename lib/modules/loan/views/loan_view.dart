@@ -17,72 +17,497 @@ class LoanView extends GetView<LoanController> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Instant Personal Loan', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('FlamePay Instant Loans', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.primaryBlue,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh Status',
+            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
+            onPressed: () {
+              controller.fetchLoanOffer();
+              controller.fetchMyApplications();
+            },
+          ),
+        ],
       ),
-      body: Obx(() {
-        if (controller.viewState.value == ViewState.loading) {
-          return const Center(child: CircularProgressIndicator());
-        }
+      body: Column(
+        children: [
+          _buildTopTabSwitcher(),
+          Expanded(
+            child: Obx(() {
+              if (controller.selectedTab.value == 1) {
+                return _buildApplicationsList(context);
+              }
 
-        if (controller.viewState.value == ViewState.error || controller.loanOffer.value == null) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
-                const SizedBox(height: 12),
-                Text('Unable to Load Loan Offers', style: AppTypography.title),
-                const SizedBox(height: 12),
-                ElevatedButton(onPressed: controller.fetchLoanOffer, child: const Text('Retry')),
-              ],
-            ),
-          );
-        }
+              if (controller.viewState.value == ViewState.loading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-        final offer = controller.loanOffer.value!;
-        final calc = controller.calculation.value;
+              if (controller.viewState.value == ViewState.error || controller.loanOffer.value == null) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+                      const SizedBox(height: 12),
+                      Text('Unable to Load Loan Offers', style: AppTypography.title),
+                      const SizedBox(height: 12),
+                      ElevatedButton(onPressed: controller.fetchLoanOffer, child: const Text('Retry')),
+                    ],
+                  ),
+                );
+              }
 
-        return SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Pre-Approved Banner
-              _buildHeaderBanner(offer),
+              final offer = controller.loanOffer.value!;
+              final calc = controller.calculation.value;
 
-              Padding(
-                padding: const EdgeInsets.all(20.0),
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // EMI Calculator Card
-                    _buildCalculatorCard(context, offer, calc),
-
-                    const SizedBox(height: 20),
-
-                    // Key Features List
-                    _buildFeaturesCard(offer),
-
-                    const SizedBox(height: 24),
-
-                    // Apply CTA Button
-                    AppButton(
-                      text: 'Apply for ₹${controller.loanAmount.value.toInt()}',
-                      type: ButtonType.orangePrimary,
-                      onPressed: () => _showLoanApplicationSheet(context),
+                    _buildHeaderBanner(offer),
+                    Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildCalculatorCard(context, offer, calc),
+                          const SizedBox(height: 20),
+                          _buildFeaturesCard(offer),
+                          const SizedBox(height: 24),
+                          AppButton(
+                            text: 'Apply for ₹${controller.loanAmount.value.toInt()} (Submit to Admin)',
+                            type: ButtonType.orangePrimary,
+                            onPressed: () => _showLoanApplicationSheet(context),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
                     ),
-
-                    const SizedBox(height: 24),
                   ],
+                ),
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopTabSwitcher() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Obx(() => Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => controller.selectedTab.value = 0,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: controller.selectedTab.value == 0 ? AppColors.primaryBlue : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.calculate_outlined,
+                          size: 16,
+                          color: controller.selectedTab.value == 0 ? Colors.white : AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Apply & Calculate',
+                          style: TextStyle(
+                            color: controller.selectedTab.value == 0 ? Colors.white : AppColors.navyText,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    controller.selectedTab.value = 1;
+                    controller.fetchMyApplications();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: controller.selectedTab.value == 1 ? AppColors.primaryBlue : Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.assignment_turned_in_outlined,
+                          size: 16,
+                          color: controller.selectedTab.value == 1 ? Colors.white : AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'My Applications',
+                          style: TextStyle(
+                            color: controller.selectedTab.value == 1 ? Colors.white : AppColors.navyText,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                        if (controller.myApplications.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: controller.selectedTab.value == 1 ? Colors.white : AppColors.accentOrange,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${controller.myApplications.length}',
+                              style: TextStyle(
+                                color: controller.selectedTab.value == 1 ? AppColors.primaryBlue : Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
+          )),
+    );
+  }
+
+  Widget _buildApplicationsList(BuildContext context) {
+    if (controller.isLoadingApplications.value) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (controller.myApplications.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: const BoxDecoration(
+                  color: AppColors.tintBlue,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.assignment_outlined, size: 40, color: AppColors.primaryBlue),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'No Loan Applications Yet',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.navyText),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'You have not submitted any loan applications yet.\nUse our instant EMI calculator to submit an application with KYC documents.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.white, size: 18),
+                label: const Text('Apply for Loan Now', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                onPressed: () => controller.selectedTab.value = 0,
+              ),
+            ],
           ),
-        );
-      }),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async => await controller.fetchMyApplications(),
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: controller.myApplications.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 14),
+        itemBuilder: (context, index) {
+          final app = controller.myApplications[index];
+          final id = app['id'] ?? 'LN_APP_${index + 1}';
+          final amount = app['requestedAmount'] ?? app['amount'] ?? 0;
+          final tenure = app['tenureMonths'] ?? app['tenure_months'] ?? 12;
+          final purpose = app['purpose'] ?? 'Personal Loan';
+          final status = (app['status'] ?? 'in_review').toString().toLowerCase();
+          final disbursalStatus = app['disbursalStatus'] ?? app['disbursal_status'] ?? 'Pending Admin Verification & Sanction';
+          final appliedAt = app['appliedAt'] ?? app['created_at'] ?? '';
+          final userName = app['userName'] ?? 'FlamePay Member';
+          final pan = app['pan'] ?? 'PAN';
+          final bankAccount = app['bankAccountNumber'] ?? '---';
+          final adminNotes = app['adminNotes'];
+
+          Color statusColor = AppColors.accentOrange;
+          Color statusBg = AppColors.tintOrange;
+          String statusText = 'Pending Admin Sanction';
+          IconData statusIcon = Icons.hourglass_top_rounded;
+
+          if (status == 'disbursed') {
+            statusColor = AppColors.success;
+            statusBg = AppColors.tintGreen;
+            statusText = 'Disbursed to Wallet / Bank';
+            statusIcon = Icons.check_circle_rounded;
+          } else if (status == 'approved' || status == 'sanctioned') {
+            statusColor = AppColors.success;
+            statusBg = AppColors.tintGreen;
+            statusText = 'Approved & Sanctioned ✓';
+            statusIcon = Icons.verified_rounded;
+          } else if (status == 'rejected') {
+            statusColor = AppColors.error;
+            statusBg = AppColors.error.withValues(alpha: 0.1);
+            statusText = 'Application Rejected';
+            statusIcon = Icons.cancel_rounded;
+          }
+
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(id.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primaryBlue)),
+                        if (appliedAt.toString().isNotEmpty)
+                          Text(
+                            appliedAt.toString().substring(0, appliedAt.toString().length > 10 ? 10 : appliedAt.toString().length),
+                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(statusIcon, color: statusColor, size: 14),
+                          const SizedBox(width: 4),
+                          Text(statusText, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const Divider(height: 20, color: AppColors.border),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Sanction Amount', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                        Text('₹${amount.toString()}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.navyText)),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        const Text('Tenure & Purpose', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                        Text('${tenure.toString()}M • ${purpose.toString()}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primaryBlue)),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                // Timeline Stepper
+                _buildTimelineStepper(status),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.tintBlue,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Applicant Name:', style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary)),
+                          Text(userName.toString(), style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyText, fontSize: 12)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('PAN & Bank A/C:', style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary)),
+                          Text('${pan.toString()} • ${bankAccount.toString()}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyText, fontSize: 12)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Admin Disbursal Status:', style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary)),
+                          Flexible(
+                            child: Text(
+                              disbursalStatus.toString(),
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontWeight: FontWeight.bold, color: statusColor, fontSize: 11.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (adminNotes != null && adminNotes.toString().isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Admin Remarks:', style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary)),
+                            Flexible(
+                              child: Text(
+                                adminNotes.toString(),
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.navyText, fontSize: 11),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTimelineStepper(String status) {
+    bool isSubmitted = true;
+    bool isReviewing = status == 'in_review' || status == 'interested';
+    bool isSanctioned = status == 'approved' || status == 'sanctioned' || status == 'disbursed';
+    bool isDisbursed = status == 'disbursed';
+    bool isRejected = status == 'rejected';
+
+    return Row(
+      children: [
+        _buildStepIndicator(
+          title: 'KYC Sent',
+          isDone: isSubmitted,
+          isActive: false,
+          isError: false,
+        ),
+        _buildStepLine(isDone: isSanctioned || isReviewing),
+        _buildStepIndicator(
+          title: isRejected ? 'Rejected' : 'Admin Review',
+          isDone: isSanctioned,
+          isActive: isReviewing,
+          isError: isRejected,
+        ),
+        _buildStepLine(isDone: isDisbursed),
+        _buildStepIndicator(
+          title: 'Disbursed',
+          isDone: isDisbursed,
+          isActive: isSanctioned && !isDisbursed,
+          isError: false,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStepIndicator({
+    required String title,
+    required bool isDone,
+    required bool isActive,
+    required bool isError,
+  }) {
+    Color color = AppColors.border;
+    IconData icon = Icons.circle_outlined;
+
+    if (isError) {
+      color = AppColors.error;
+      icon = Icons.cancel;
+    } else if (isDone) {
+      color = AppColors.success;
+      icon = Icons.check_circle_rounded;
+    } else if (isActive) {
+      color = AppColors.accentOrange;
+      icon = Icons.timelapse_rounded;
+    }
+
+    return Expanded(
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: isDone || isActive ? AppColors.navyText : AppColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepLine({required bool isDone}) {
+    return Container(
+      width: 24,
+      height: 2,
+      margin: const EdgeInsets.only(bottom: 14),
+      color: isDone ? AppColors.success : AppColors.border,
     );
   }
 
@@ -120,7 +545,7 @@ class LoanView extends GetView<LoanController> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Zero paperwork • Funds in FlamePay wallet in 2 minutes',
+            'Admin Sanction • Direct Bank / Wallet Disbursal',
             style: TextStyle(color: Colors.white70, fontSize: 13),
           ),
         ],
@@ -450,50 +875,37 @@ class LoanView extends GetView<LoanController> {
                   TextField(
                     controller: nameCtrl,
                     decoration: InputDecoration(
-                      labelText: 'Full Name as per PAN',
-                      prefixIcon: const Icon(Icons.person_rounded, size: 20, color: AppColors.primaryBlue),
+                      labelText: 'Full Name (as per PAN)',
+                      prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.primaryBlue),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: phoneCtrl,
-                    keyboardType: TextInputType.phone,
-                    decoration: InputDecoration(
-                      labelText: 'Registered Mobile Number',
-                      prefixIcon: const Icon(Icons.phone_android_rounded, size: 20, color: AppColors.primaryBlue),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Section 2: Identity & Bank
-                  const Text('2. IDENTITY & BANK DISBURSAL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryBlue, letterSpacing: 0.5)),
                   const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
                         child: TextField(
-                          controller: panCtrl,
-                          textCapitalization: TextCapitalization.characters,
+                          controller: phoneCtrl,
+                          keyboardType: TextInputType.phone,
                           decoration: InputDecoration(
-                            labelText: 'PAN Number',
-                            prefixIcon: const Icon(Icons.badge_rounded, size: 20, color: AppColors.primaryBlue),
+                            labelText: 'Mobile Number',
+                            prefixIcon: const Icon(Icons.phone_iphone_rounded, color: AppColors.primaryBlue),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
-                          controller: aadhaarCtrl,
-                          keyboardType: TextInputType.number,
+                          controller: panCtrl,
+                          textCapitalization: TextCapitalization.characters,
+                          maxLength: 10,
                           decoration: InputDecoration(
-                            labelText: 'Aadhaar Number',
-                            prefixIcon: const Icon(Icons.credit_card_rounded, size: 20, color: AppColors.primaryBlue),
+                            counterText: '',
+                            labelText: 'PAN Card No.',
+                            prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.primaryBlue),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
@@ -501,6 +913,21 @@ class LoanView extends GetView<LoanController> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: aadhaarCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: 'Aadhaar Card No. (12 Digits)',
+                      prefixIcon: const Icon(Icons.credit_card_rounded, color: AppColors.primaryBlue),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Section 2: Bank & Income Details
+                  const Text('2. BANK ACCOUNT & INCOME', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryBlue, letterSpacing: 0.5)),
                   const SizedBox(height: 10),
                   Row(
                     children: [
@@ -510,14 +937,14 @@ class LoanView extends GetView<LoanController> {
                           controller: accountCtrl,
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
-                            labelText: 'Bank Account Number',
-                            prefixIcon: const Icon(Icons.account_balance_rounded, size: 20, color: AppColors.primaryBlue),
+                            labelText: 'Disbursal Bank A/C No',
+                            prefixIcon: const Icon(Icons.account_balance_outlined, color: AppColors.primaryBlue),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Expanded(
                         flex: 2,
                         child: TextField(
@@ -532,28 +959,24 @@ class LoanView extends GetView<LoanController> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-
-                  // Section 3: Income & Purpose
-                  const Text('3. INCOME & PURPOSE', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryBlue, letterSpacing: 0.5)),
                   const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          initialValue: employmentType,
+                          value: employmentType,
                           decoration: InputDecoration(
                             labelText: 'Employment',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
-                          items: ['Salaried', 'Self-Employed', 'Business']
+                          items: ['Salaried', 'Self Employed', 'Business']
                               .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13))))
                               .toList(),
                           onChanged: (v) => setSheetState(() => employmentType = v ?? 'Salaried'),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
                           controller: incomeCtrl,
@@ -561,40 +984,49 @@ class LoanView extends GetView<LoanController> {
                           decoration: InputDecoration(
                             labelText: 'Monthly Income (₹)',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    initialValue: purpose,
+                  TextField(
+                    controller: companyCtrl,
                     decoration: InputDecoration(
-                      labelText: 'Loan Purpose',
-                      prefixIcon: const Icon(Icons.wallet_rounded, size: 20, color: AppColors.primaryBlue),
+                      labelText: 'Company / Business Name',
+                      prefixIcon: const Icon(Icons.business_rounded, color: AppColors.primaryBlue),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
-                    items: ['Personal Expense', 'Medical Emergency', 'Home Renovation', 'Education', 'Debt Consolidation', 'Business Expansion']
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<String>(
+                    value: purpose,
+                    decoration: InputDecoration(
+                      labelText: 'Loan Purpose',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                    items: ['Personal Expense', 'Home Renovation', 'Medical Emergency', 'Education', 'Debt Consolidation', 'Travel']
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13))))
                         .toList(),
                     onChanged: (v) => setSheetState(() => purpose = v ?? 'Personal Expense'),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
 
-                  // Section 4: Mandatory Document Uploads
+                  // Section 3: 4 Mandatory KYC & Income Documents
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('4. MANDATORY DOCUMENTS (FOR APPROVAL)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryBlue, letterSpacing: 0.5)),
+                      const Text('3. MANDATORY KYC & INCOME DOCUMENTS (4/4)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryBlue, letterSpacing: 0.5)),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: AppColors.tintGreen,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text('4/4 Ready ✓', style: TextStyle(color: AppColors.success, fontSize: 11, fontWeight: FontWeight.bold)),
+                        child: const Text('Required by Admin', style: TextStyle(fontSize: 10, color: AppColors.success, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -642,7 +1074,7 @@ class LoanView extends GetView<LoanController> {
 
                   // Submit Button
                   Obx(() => AppButton(
-                        text: 'Confirm & Disburse Now',
+                        text: 'Submit Application for Admin Sanction',
                         isLoading: controller.isSubmitting.value,
                         type: ButtonType.orangePrimary,
                         onPressed: () {
