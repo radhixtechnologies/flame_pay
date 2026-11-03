@@ -13,7 +13,7 @@ class AppConfig {
   static const String baseUrl = 'https://admin.flamepay.in/api/v1';
 
   /// Network timeouts
-  static const Duration connectTimeout = Duration(seconds: 30);
+  static const Duration connectTimeout = Duration(seconds: 15);
   static const Duration receiveTimeout = Duration(seconds: 30);
 
   /// Brand Identity
