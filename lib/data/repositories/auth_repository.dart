@@ -41,6 +41,7 @@ class AuthRepository {
     return ApiResponse.success(
       AuthResponseModel(
         token: 'FP_TOKEN_${DateTime.now().millisecondsSinceEpoch}',
+        refreshToken: 'FP_REFRESH_${DateTime.now().millisecondsSinceEpoch}',
         user: UserModel(
           id: 'FP_USER_${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
           name: 'FlamePay Member',
