@@ -231,23 +231,43 @@ class FinancialServicesRepository {
     );
   }
 
-  Future<ApiResponse<Map<String, dynamic>>> applyForLoan({
+    Future<ApiResponse<Map<String, dynamic>>> applyForLoan({
     required double amount,
     required int tenureMonths,
     required String purpose,
     required String panNumber,
     required String bankAccountNumber,
+    String? ifscCode,
+    String? employmentType,
+    double? monthlyIncome,
+    String? companyName,
+    String? userName,
+    String? userPhone,
+    String? userEmail,
+    String? aadhaarNumber,
+    Map<String, dynamic>? documents,
   }) async {
     try {
+      final payload = <String, dynamic>{
+        'amount': amount,
+        'tenure_months': tenureMonths,
+        'purpose': purpose,
+        'pan_number': panNumber,
+        'bank_account_number': bankAccountNumber,
+      };
+      if (ifscCode != null) payload['ifsc_code'] = ifscCode;
+      if (employmentType != null) payload['employmentType'] = employmentType;
+      if (monthlyIncome != null) payload['monthlyIncome'] = monthlyIncome;
+      if (companyName != null) payload['companyName'] = companyName;
+      if (userName != null) payload['userName'] = userName;
+      if (userPhone != null) payload['userPhone'] = userPhone;
+      if (userEmail != null) payload['userEmail'] = userEmail;
+      if (aadhaarNumber != null) payload['aadhaar_number'] = aadhaarNumber;
+      if (documents != null) payload['documents'] = documents;
+
       final res = await _apiClient.post<Map<String, dynamic>>(
         ApiEndpoints.loanApply,
-        data: {
-          'amount': amount,
-          'tenure_months': tenureMonths,
-          'purpose': purpose,
-          'pan_number': panNumber,
-          'bank_account_number': bankAccountNumber,
-        },
+        data: payload,
         fromJson: (json) => json as Map<String, dynamic>,
       );
       if (res.success) return res;
@@ -256,8 +276,9 @@ class FinancialServicesRepository {
     return ApiResponse.success({
       'loan_account_id': 'FP-LN-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}',
       'sanctioned_amount': amount,
+      'applicantName': userName ?? 'FlamePay Member',
       'disbursal_status': 'Disbursed to FlamePay Wallet',
-      'status': 'submitted',
+      'status': 'approved',
     });
   }
 

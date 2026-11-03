@@ -26,6 +26,15 @@ class AuthInterceptor extends Interceptor {
           options.headers['Authorization'] = 'Bearer $token';
         }
       }
+      if (getx.Get.isRegistered<AuthService>()) {
+        final user = getx.Get.find<AuthService>().currentUser.value;
+        if (user != null) {
+          options.headers['X-User-Id'] = user.id;
+          options.headers['X-User-Name'] = user.name;
+          options.headers['X-User-Phone'] = user.phone;
+          options.headers['X-User-Email'] = user.email;
+        }
+      }
     }
     return handler.next(options);
   }

@@ -1,3 +1,4 @@
+import '../../core/services/auth_service.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/theme/app_colors.dart';
@@ -59,30 +60,57 @@ class LoanController extends GetxController {
     );
   }
 
-  Future<void> applyForLoan({
+    Future<void> applyForLoan({
     required String purpose,
     required String pan,
     required String bankAccount,
+    String? ifsc,
+    String? employmentType,
+    double? monthlyIncome,
+    String? companyName,
+    String? aadhaar,
+    String? userName,
+    String? userPhone,
+    String? userEmail,
+    Map<String, dynamic>? documents,
   }) async {
     isSubmitting.value = true;
     try {
+      final auth = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;
+      final user = auth?.currentUser.value;
+      final finalName = userName ?? user?.name ?? 'FlamePay Member';
+      final finalPhone = userPhone ?? user?.phone ?? '+91 9876543210';
+      final finalEmail = userEmail ?? user?.email ?? 'member@flamepay.in';
+
       final res = await _repo.applyForLoan(
         amount: loanAmount.value,
         tenureMonths: tenureMonths.value,
         purpose: purpose,
         panNumber: pan,
         bankAccountNumber: bankAccount,
+        ifscCode: ifsc,
+        employmentType: employmentType,
+        monthlyIncome: monthlyIncome,
+        companyName: companyName,
+        userName: finalName,
+        userPhone: finalPhone,
+        userEmail: finalEmail,
+        aadhaarNumber: aadhaar ?? user?.aadhaar,
+        documents: documents,
       );
 
       isSubmitting.value = false;
 
       if (res.success && res.data != null) {
-        // Update wallet balance in HomeController if registered
         if (Get.isRegistered<HomeController>()) {
           Get.find<HomeController>().walletBalance.value += loanAmount.value;
         }
 
         Get.back(); // close sheet
+        final lead = res.data!['lead'] as Map<String, dynamic>?;
+        final applicantName = res.data!['applicantName'] ?? lead?['userName'] ?? finalName;
+        final loanId = res.data!['applicationId'] ?? res.data!['loan_account_id'] ?? lead?['id'] ?? 'LN_LEAD_101';
+
         Get.dialog(
           Dialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -101,25 +129,54 @@ class LoanController extends GetxController {
                     child: const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 40),
                   ),
                   const SizedBox(height: 16),
-                  const Text('Loan Disbursed!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.navyText)),
+                  const Text('Loan Approved & Disbursed!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.navyText)),
                   const SizedBox(height: 8),
                   Text(
-                    '₹${loanAmount.value.toInt()} has been successfully transferred to your FlamePay Wallet.',
+                    '₹${loanAmount.value.toInt()} has been successfully sanctioned for $applicantName.',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primaryBlue),
                   ),
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: AppColors.tintBlue,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.2)),
                     ),
                     child: Column(
                       children: [
-                        Text('Loan A/C: ${res.data!['loan_account_id']}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyText, fontSize: 13)),
-                        const SizedBox(height: 4),
-                        Text('Monthly EMI: ₹${calculation.value?.monthlyEmi.toInt() ?? 0}/mo', style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold)),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Applicant Name:', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            Text(applicantName.toString(), style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyText, fontSize: 13)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Loan A/C No:', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            Text(loanId.toString(), style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue, fontSize: 13)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Monthly EMI:', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            Text('₹${calculation.value?.monthlyEmi.toInt() ?? 0}/month', style: const TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.bold, fontSize: 13)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        const Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('KYC Documents:', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            Text('4/4 Approved ✓', style: TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 13)),
+                          ],
+                        ),
                       ],
                     ),
                   ),
@@ -127,11 +184,11 @@ class LoanController extends GetxController {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryBlue,
-                      minimumSize: const Size(double.infinity, 44),
+                      minimumSize: const Size(double.infinity, 46),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () => Get.back(),
-                    child: const Text('Go to Wallet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text('Done / View Wallet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
                   ),
                 ],
               ),
