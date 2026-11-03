@@ -52,12 +52,14 @@ class CibilScoreModel {
   });
 
   factory CibilScoreModel.fromJson(Map<String, dynamic> json) {
+    final rawScore = json['score'] ?? json['cibilScore'];
+    final parsedScore = rawScore is num ? rawScore.toInt() : int.tryParse(rawScore?.toString() ?? '') ?? 750;
     return CibilScoreModel(
-      score: json['score'] ?? 750,
+      score: parsedScore,
       rating: json['rating'] ?? 'Excellent',
-      lastUpdated: json['last_updated'] ?? '',
-      nextRefreshDate: json['next_refresh_date'] ?? '',
-      reportId: json['report_id'] ?? 'CIBIL-2026-9982',
+      lastUpdated: json['last_updated'] ?? json['lastUpdated'] ?? 'Today',
+      nextRefreshDate: json['next_refresh_date'] ?? json['nextRefreshDate'] ?? 'Next Month',
+      reportId: json['report_id'] ?? json['reportId'] ?? json['id'] ?? 'CIBIL-2026-9982',
       factors: (json['factors'] as List<dynamic>?)
               ?.map((e) => CibilFactorModel.fromJson(e as Map<String, dynamic>))
               .toList() ??

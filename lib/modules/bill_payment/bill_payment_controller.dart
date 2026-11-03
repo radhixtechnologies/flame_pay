@@ -9,7 +9,7 @@ import '../../shared/widgets/payment_success_view.dart';
 class BillPaymentController extends GetxController {
   final RechargeRepository _repo = Get.find<RechargeRepository>();
 
-  final consumerNumberController = TextEditingController(text: '1002345678');
+  final consumerNumberController = TextEditingController();
   final promoCodeController = TextEditingController();
 
   final RxString selectedCategory = 'electricity'.obs;
@@ -39,7 +39,6 @@ class BillPaymentController extends GetxController {
       selectedCategory.value = args['category'].toString();
     }
     updateBillerForCategory();
-    fetchBill();
   }
 
   void onSelectCategory(String catId) {

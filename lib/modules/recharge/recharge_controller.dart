@@ -15,7 +15,7 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
   final RxInt selectedTab = 0.obs; // 0 = Mobile, 1 = DTH
 
   // Mobile Recharge States
-  final mobileController = TextEditingController(text: '9876543210');
+  final mobileController = TextEditingController();
   final Rx<OperatorModel> selectedMobileOperator = MockRechargeData.mobileOperators.first.obs;
   final RxString selectedCircle = 'Delhi NCR'.obs;
   final RxList<RechargePlanModel> allPlans = <RechargePlanModel>[].obs;
@@ -24,7 +24,7 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
 
   // DTH Recharge States
   final dthSubscriberController = TextEditingController();
-  final dthAmountController = TextEditingController(text: '350');
+  final dthAmountController = TextEditingController();
   final Rx<OperatorModel> selectedDthOperator = MockRechargeData.dthOperators.first.obs;
 
   // Payment states
@@ -56,8 +56,6 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
     mobileController.addListener(_onMobileChanged);
     if (mobileController.text.length == 10) {
       autoDetectOperator(mobileController.text);
-    } else {
-      fetchPlans();
     }
   }
 
@@ -68,6 +66,9 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
     if (text.length == 10 && text != _lastCheckedMobile) {
       _lastCheckedMobile = text;
       autoDetectOperator(text);
+    } else if (text.length < 10) {
+      allPlans.clear();
+      _lastCheckedMobile = '';
     }
   }
 
@@ -97,11 +98,17 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
           return;
         }
       } catch (_) {}
+      fetchPlans();
     }
-    fetchPlans();
   }
 
   Future<void> fetchPlans() async {
+    final phone = mobileController.text.trim();
+    if (phone.length < 10) {
+      allPlans.clear();
+      isLoadingPlans.value = false;
+      return;
+    }
     isLoadingPlans.value = true;
     try {
       final res = await _repo.getPlans(

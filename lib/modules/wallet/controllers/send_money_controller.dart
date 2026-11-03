@@ -40,6 +40,11 @@ class SendMoneyController extends GetxController {
       if (args['amount'] != null) {
         amountController.text = args['amount'].toString();
       }
+      if (args['type'] != null) {
+        selectedTransferType.value = args['type'].toString();
+      } else if (recipientController.text.contains('@')) {
+        selectedTransferType.value = 'UPI ID';
+      }
     }
   }
 
@@ -68,6 +73,13 @@ class SendMoneyController extends GetxController {
       final clean = recipient.replaceAll(RegExp(r'\s+'), '');
       if (!RegExp(r'^[6-9]\d{9}$').hasMatch(clean)) {
         Get.snackbar('Validation', 'Enter a valid 10-digit mobile number (starts with 6-9)',
+            backgroundColor: Colors.orange.shade100);
+        return;
+      }
+    } else {
+      // Validate UPI ID
+      if (!recipient.contains('@') && !recipient.contains('.')) {
+        Get.snackbar('Validation', 'Enter a valid UPI ID (e.g. name@upi)',
             backgroundColor: Colors.orange.shade100);
         return;
       }

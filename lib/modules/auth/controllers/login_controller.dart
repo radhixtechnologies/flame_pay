@@ -9,7 +9,7 @@ class LoginController extends GetxController {
   final AuthRepository _repo = Get.find<AuthRepository>();
 
   final loginFormKey = GlobalKey<FormState>();
-  final phoneController = TextEditingController(text: '9876543210');
+  final phoneController = TextEditingController();
   final nameController = TextEditingController();
   final isSendingOtp = false.obs;
   final isNewUser = false.obs;

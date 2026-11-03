@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/utils/validators.dart';
 import '../../data/repositories/wallet_repository.dart';
 import '../../data/models/transaction_model.dart';
@@ -131,6 +132,40 @@ class WalletController extends GetxController {
         bankDetails.assignAll(res.data!);
       }
     } catch (_) {}
+  }
+
+  Future<void> openUpiIntent() async {
+    final amtText = addAmountController.text.trim();
+    final validationError = Validators.validateAmount(amtText, min: 10, max: 50000);
+    if (validationError != null) {
+      Get.snackbar('Validation', validationError, backgroundColor: Colors.orange.shade100);
+      return;
+    }
+
+    final upiId = bankDetails['upiId']?.toString() ?? '32823806111@sbi';
+    final name = bankDetails['bankingName']?.toString() ?? 'FlamePay Admin';
+    final upiUri = Uri.parse(
+      'upi://pay?pa=$upiId&pn=${Uri.encodeComponent(name)}&am=$amtText&cu=INR&tn=${Uri.encodeComponent("FlamePay Wallet Topup")}'
+    );
+
+    try {
+      final launched = await launchUrl(upiUri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        Get.snackbar(
+          'UPI App',
+          'Please select an installed UPI app (GPay/PhonePe/Paytm) or copy UPI ID ($upiId) below.',
+          backgroundColor: Colors.blue.shade100,
+          duration: const Duration(seconds: 4),
+        );
+      }
+    } catch (_) {
+      Get.snackbar(
+        'UPI Notice',
+        'Could not launch UPI app automatically. You can copy the UPI ID ($upiId) and transfer directly.',
+        backgroundColor: Colors.orange.shade100,
+        duration: const Duration(seconds: 4),
+      );
+    }
   }
 
   Future<void> submitTopupRequest() async {

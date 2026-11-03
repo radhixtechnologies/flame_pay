@@ -104,59 +104,86 @@ class AddMoneyView extends GetView<WalletController> {
               }).toList(),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
-            // Official Bank & UPI Transfer Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.blue.shade900, const Color(0xFF1E3A8A)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.blue.shade900.withValues(alpha: 0.25),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+            // Pay via Installed UPI App Button
+            ElevatedButton.icon(
+              onPressed: controller.openUpiIntent,
+              icon: const Icon(Icons.touch_app_rounded, color: Colors.white, size: 22),
+              label: const Text(
+                'Pay Instantly via UPI App (GPay / PhonePe / Paytm)',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.account_balance, color: Colors.amber, size: 22),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Direct Bank & UPI Deposit Account',
-                        style: AppTypography.bodyBold.copyWith(color: Colors.white),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Transfer money to this account via GPay, PhonePe, Paytm, or NetBanking:',
-                    style: TextStyle(color: Colors.blue.shade100, fontSize: 12),
-                  ),
-                  const Divider(color: Colors.white24, height: 20),
-
-                  // Account Details Rows
-                  _buildDetailRow('Beneficiary Name', 'SHIVAM SHIVAM', false),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('Bank Name', 'State Bank of India (SBI)', false),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('Account Number', '32823806111', true),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('IFSC Code', 'SBIN0013209', true),
-                  const SizedBox(height: 8),
-                  _buildDetailRow('UPI ID', '32823806111@sbi', true),
-                ],
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0F766E),
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 2,
               ),
             ),
+
+            const SizedBox(height: 20),
+
+            // Official Bank & UPI Transfer Card
+            Obx(() {
+              final b = controller.bankDetails;
+              final bName = b['bankingName']?.toString() ?? 'FlamePay Payments';
+              final bank = b['bankName']?.toString() ?? 'State Bank of India (SBI)';
+              final acc = b['accountNumber']?.toString() ?? '32823806111';
+              final ifsc = b['ifsc']?.toString() ?? 'SBIN0013209';
+              final upi = b['upiId']?.toString() ?? '32823806111@sbi';
+
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.blue.shade900, const Color(0xFF1E3A8A)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.shade900.withValues(alpha: 0.25),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.account_balance, color: Colors.amber, size: 22),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Direct Bank & UPI Deposit Account',
+                          style: AppTypography.bodyBold.copyWith(color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Transfer money to this account via GPay, PhonePe, Paytm, or NetBanking:',
+                      style: TextStyle(color: Colors.blue.shade100, fontSize: 12),
+                    ),
+                    const Divider(color: Colors.white24, height: 20),
+
+                    // Account Details Rows
+                    _buildDetailRow('Beneficiary Name', bName, false),
+                    const SizedBox(height: 8),
+                    _buildDetailRow('Bank Name', bank, false),
+                    const SizedBox(height: 8),
+                    _buildDetailRow('Account Number', acc, true),
+                    const SizedBox(height: 8),
+                    _buildDetailRow('IFSC Code', ifsc, true),
+                    const SizedBox(height: 8),
+                    _buildDetailRow('UPI ID', upi, true),
+                  ],
+                ),
+              );
+            }),
 
             const SizedBox(height: 20),
 

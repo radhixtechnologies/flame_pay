@@ -33,88 +33,465 @@ class CibilView extends GetView<CibilController> {
         ],
       ),
       body: Obx(() {
-        if (controller.viewState.value == ViewState.loading) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (controller.viewState.value == ViewState.error || controller.cibilReport.value == null) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
-                const SizedBox(height: 12),
-                Text('Failed to load CIBIL report', style: AppTypography.title),
-                const SizedBox(height: 6),
-                Text('Could not fetch credit score', style: AppTypography.caption),
-                const SizedBox(height: 16),
-                ElevatedButton(onPressed: controller.fetchCibilReport, child: const Text('Retry')),
-              ],
-            ),
-          );
+        if (!controller.hasCheckedScore.value || controller.cibilReport.value == null) {
+          return _buildPanInputForm(context);
         }
 
         final report = controller.cibilReport.value!;
+        return _buildReportView(context, report);
+      }),
+    );
+  }
 
-        return SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header Arc & Score Gauge
-              _buildScoreHeader(report),
-
-              const SizedBox(height: 16),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildPanInputForm(BuildContext context) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Trust Banner
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primaryBlue.withValues(alpha: 0.08),
+                  AppColors.accentOrange.withValues(alpha: 0.08),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.2)),
+            ),
+            child: Column(
+              children: [
+                Row(
                   children: [
-                    // Download & Refresh Quick Bar
-                    _buildReportMetaBar(report),
-
-                    const SizedBox(height: 24),
-
-                    // Section Title: Factors Affecting Score
-                    Text(
-                      'Credit Factors Breakdown',
-                      style: AppTypography.title.copyWith(color: AppColors.navyText, fontWeight: FontWeight.bold),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(
+                        color: AppColors.primaryBlue,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.verified_user_rounded, color: Colors.white, size: 24),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '5 key factors tracked by credit bureaus',
-                      style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Check Free Credit Score',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.navyText,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Instant bureau report • Zero impact on score',
+                            style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
                     ),
-
-                    const SizedBox(height: 14),
-
-                    // List of Factors
-                    ...report.factors.map((factor) => _buildFactorCard(factor)),
-
-                    const SizedBox(height: 24),
-
-                    // Score Improvement Tips
-                    _buildTipsSection(report.tips),
-
-                    const SizedBox(height: 24),
-
-                    // Download Full Report CTA
-                    AppButton(
-                      text: 'Download Official CIBIL Report',
-                      type: ButtonType.blueSecondary,
-                      icon: const Icon(Icons.file_download_outlined, color: Colors.white, size: 20),
-                      onPressed: controller.downloadReport,
-                    ),
-
-                    const SizedBox(height: 32),
                   ],
                 ),
+                const SizedBox(height: 14),
+                // Bureau Badges
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildBureauPill('CIBIL'),
+                      const Text('•', style: TextStyle(color: AppColors.textSecondary)),
+                      _buildBureauPill('EXPERIAN'),
+                      const Text('•', style: TextStyle(color: AppColors.textSecondary)),
+                      _buildBureauPill('CRIF HIGHMARK'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // PAN Details Input Card
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [AppColors.cardShadow],
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Enter Your Details',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.navyText,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Details are verified directly with credit bureaus',
+                  style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                ),
+
+                const SizedBox(height: 20),
+
+                // PAN Number Input
+                const Text(
+                  'PAN Card Number',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.navyText,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: controller.panController,
+                  textCapitalization: TextCapitalization.characters,
+                  maxLength: 10,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2.0,
+                    fontSize: 16,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'ABCDE1234F',
+                    hintStyle: TextStyle(
+                      color: Colors.grey.shade400,
+                      letterSpacing: 1.5,
+                      fontWeight: FontWeight.normal,
+                    ),
+                    counterText: '',
+                    prefixIcon: const Icon(Icons.credit_card_rounded, color: AppColors.primaryBlue),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: AppColors.background,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Full Name Input
+                const Text(
+                  'Full Name (as per PAN Card)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.navyText,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: controller.nameController,
+                  textCapitalization: TextCapitalization.words,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Rahul Sharma',
+                    hintStyle: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.normal),
+                    prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.primaryBlue),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: AppColors.background,
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // Date of Birth Input
+                const Text(
+                  'Date of Birth',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.navyText,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: controller.dobController,
+                  readOnly: true,
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime(1995, 1, 1),
+                      firstDate: DateTime(1940),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      controller.dobController.text =
+                          "${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}";
+                    }
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'DD/MM/YYYY',
+                    hintStyle: TextStyle(color: Colors.grey.shade400),
+                    prefixIcon: const Icon(Icons.calendar_month_outlined, color: AppColors.primaryBlue),
+                    suffixIcon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.textSecondary),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: AppColors.background,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                // Consent Checkbox
+                Obx(() => Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: Checkbox(
+                            value: controller.agreedToConsent.value,
+                            activeColor: AppColors.primaryBlue,
+                            onChanged: (val) => controller.agreedToConsent.value = val ?? false,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () =>
+                                controller.agreedToConsent.value = !controller.agreedToConsent.value,
+                            child: Text(
+                              'I authorize FlamePay to retrieve my credit score and report from credit bureaus (CIBIL/Experian/CRIF) for credit assessment.',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.navyText,
+                                fontSize: 11.5,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )),
+
+                const SizedBox(height: 22),
+
+                // Fetch Score Button
+                Obx(() => AppButton(
+                      text: 'Check Free Credit Score',
+                      type: ButtonType.orangePrimary,
+                      isLoading: controller.isChecking.value,
+                      icon: const Icon(Icons.speed_rounded, color: Colors.white, size: 20),
+                      onPressed: controller.checkScoreForPan,
+                    )),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Trust Features Grid
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              children: [
+                _buildTrustItem(
+                  Icons.shield_outlined,
+                  'Safe & Secure (Soft Enquiry)',
+                  'Checking credit score will NOT decrease your score.',
+                ),
+                const Divider(height: 20, color: AppColors.border),
+                _buildTrustItem(
+                  Icons.bar_chart_rounded,
+                  'Personalized Health Report',
+                  'Get individual scores, factors, and improvement tips for your PAN.',
+                ),
+                const Divider(height: 20, color: AppColors.border),
+                _buildTrustItem(
+                  Icons.lock_outline_rounded,
+                  '256-bit Bank Grade Encryption',
+                  'Your PAN Card data is strictly encrypted and protected.',
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBureauPill(String name) {
+    return Text(
+      name,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
+        color: AppColors.navyText,
+        letterSpacing: 0.5,
+      ),
+    );
+  }
+
+  Widget _buildTrustItem(IconData icon, String title, String subtitle) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.tintBlue,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: AppColors.primaryBlue, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.navyText,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: AppTypography.caption.copyWith(color: AppColors.textSecondary, fontSize: 11.5),
               ),
             ],
           ),
-        );
-      }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReportView(BuildContext context, CibilScoreModel report) {
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header Arc & Score Gauge
+          _buildScoreHeader(report),
+
+          const SizedBox(height: 16),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Download & Refresh Quick Bar
+                _buildReportMetaBar(report),
+
+                const SizedBox(height: 16),
+
+                // Button to Check Another PAN
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    side: const BorderSide(color: AppColors.primaryBlue),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: controller.resetToInputForm,
+                  icon: const Icon(Icons.switch_account_outlined, color: AppColors.primaryBlue),
+                  label: const Text(
+                    'Check Score for Another PAN Card',
+                    style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Section Title: Factors Affecting Score
+                Text(
+                  'Credit Factors Breakdown',
+                  style: AppTypography.title.copyWith(color: AppColors.navyText, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '5 key factors tracked by credit bureaus',
+                  style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+                ),
+
+                const SizedBox(height: 14),
+
+                // List of Factors
+                ...report.factors.map((factor) => _buildFactorCard(factor)),
+
+                const SizedBox(height: 24),
+
+                // Score Improvement Tips
+                _buildTipsSection(report.tips),
+
+                const SizedBox(height: 24),
+
+                // Download Full Report CTA
+                AppButton(
+                  text: 'Download Official CIBIL Report',
+                  type: ButtonType.blueSecondary,
+                  icon: const Icon(Icons.file_download_outlined, color: Colors.white, size: 20),
+                  onPressed: controller.downloadReport,
+                ),
+
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -147,9 +524,14 @@ class CibilView extends GetView<CibilController> {
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
-                          'ID: ${report.reportId}',
+                          controller.currentPan.value.isNotEmpty
+                              ? 'PAN: ${controller.currentPan.value}'
+                              : 'ID: ${report.reportId}',
                           overflow: TextOverflow.ellipsis,
-                          style: AppTypography.micro.copyWith(color: Colors.white),
+                          style: AppTypography.micro.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],

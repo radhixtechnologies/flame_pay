@@ -62,22 +62,37 @@ class _QrScannerSheetState extends State<QrScannerSheet> {
     // Parse UPI link (e.g. upi://pay?pa=merchant@upi&pn=MerchantName&am=500)
     String recipient = rawData;
     String? amount;
+    String? payeeName;
+    String transferType = 'UPI ID';
 
     if (rawData.startsWith('upi://')) {
       final uri = Uri.tryParse(rawData);
       if (uri != null) {
-        recipient = uri.queryParameters['pn'] ?? uri.queryParameters['pa'] ?? rawData;
+        final pa = uri.queryParameters['pa'];
+        final pn = uri.queryParameters['pn'];
         amount = uri.queryParameters['am'];
+        recipient = pa ?? pn ?? rawData;
+        payeeName = pn;
       }
+      transferType = 'UPI ID';
+    } else if (RegExp(r'^[6-9]\d{9}$').hasMatch(rawData.replaceAll(RegExp(r'[^0-9]'), ''))) {
+      transferType = 'Mobile Number';
+      recipient = rawData.replaceAll(RegExp(r'[^0-9]'), '');
+    } else {
+      transferType = 'UPI ID';
     }
 
-    final Map<String, dynamic> args = {'recipient': recipient};
-    if (amount != null) args['amount'] = amount;
+    final Map<String, dynamic> args = {
+      'recipient': recipient,
+      'type': transferType,
+      ...?payeeName != null ? {'name': payeeName} : null,
+      ...?amount != null ? {'amount': amount} : null,
+    };
     Get.toNamed(AppRoutes.sendMoney, arguments: args);
 
     Get.snackbar(
       'QR Scanned',
-      'Payee identified: $recipient',
+      'Payee identified: ${payeeName ?? recipient}',
       backgroundColor: AppColors.tintGreen,
       colorText: AppColors.navyText,
       duration: const Duration(seconds: 3),
