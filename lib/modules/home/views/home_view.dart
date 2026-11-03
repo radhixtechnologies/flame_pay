@@ -177,7 +177,7 @@ class HomeView extends GetView<HomeController> {
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  AppColors.flameOrange.withValues(alpha: 0.12),
+                                  AppColors.accentOrange.withValues(alpha: 0.12),
                                   AppColors.accentOrange.withValues(alpha: 0.06),
                                 ],
                               ),
