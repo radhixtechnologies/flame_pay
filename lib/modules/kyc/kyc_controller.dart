@@ -15,10 +15,10 @@ class KycController extends GetxController {
   final kycStatusText = 'Not Verified'.obs;
 
   // Form Fields
-  final fullNameController = TextEditingController(text: 'Rahul Sharma');
-  final panController = TextEditingController(text: 'ABCDE1234F');
-  final aadhaarController = TextEditingController(text: '5678 9012 3456');
-  final dobController = TextEditingController(text: '15/08/1995');
+  final fullNameController = TextEditingController();
+  final panController = TextEditingController();
+  final aadhaarController = TextEditingController();
+  final dobController = TextEditingController();
 
   // Document Upload States
   final aadhaarFrontUploaded = false.obs;
@@ -61,7 +61,7 @@ class KycController extends GetxController {
   Future<void> _fetchKycStatus() async {
     try {
       final res = await ApiClient.instance.get(ApiEndpoints.kycStatus);
-      if (res.data != null && res.data['status'] == 'completed') {
+      if (res.data != null && (res.data['status'] == 'completed' || res.data['status'] == 'verified')) {
         isKycCompleted.value = true;
         kycStatusText.value = 'Full KYC Verified';
       }
@@ -148,7 +148,9 @@ class KycController extends GetxController {
                 onPressed: () {
                   Get.back(); // close scanner
                   // Decode & Autofill
-                  fullNameController.text = 'Rahul Sharma';
+                  final user = authService.currentUser.value;
+                  final currentName = (user != null && user.name.isNotEmpty && user.name != 'User') ? user.name : (fullNameController.text.isNotEmpty ? fullNameController.text : 'FlamePay Member');
+                  fullNameController.text = currentName;
                   aadhaarController.text = '5678 9012 3456';
                   dobController.text = '15/08/1995';
                   aadhaarFrontUploaded.value = true;
@@ -266,12 +268,20 @@ class KycController extends GetxController {
 
     isSubmitting.value = true;
 
+    final name = fullNameController.text.trim();
+    final pan = panController.text.trim().toUpperCase();
+    final aadhaar = aadhaarController.text.replaceAll(' ', '');
+    final dob = dobController.text.trim();
+
     try {
       await ApiClient.instance.post(ApiEndpoints.kycSubmit, data: {
-        'fullName': fullNameController.text.trim(),
-        'pan': panController.text.trim(),
-        'aadhaar': aadhaarController.text.replaceAll(' ', ''),
-        'dob': dobController.text.trim(),
+        'fullName': name,
+        'name': name,
+        'pan': pan,
+        'panNumber': pan,
+        'aadhaar': aadhaar,
+        'aadhaarNumber': aadhaar,
+        'dob': dob,
       });
     } catch (_) {
       // Fallback
@@ -289,13 +299,16 @@ class KycController extends GetxController {
         phone: '+91 9876543210',
         email: 'user@example.com',
       )).copyWith(
-        name: fullNameController.text.trim(),
+        name: name.isNotEmpty ? name : (existingUser?.name ?? 'FlamePay Member'),
         kycStatus: 'verified',
         isVip: true,
-        pan: panController.text.trim(),
-        aadhaar: aadhaarController.text.trim(),
+        pan: pan,
+        aadhaar: aadhaar,
       );
       authService.setUser(updatedUser);
+
+      final args = Get.arguments;
+      final fromOnboarding = args is Map && args['fromOnboarding'] == true;
 
       Get.dialog(
         AlertDialog(
@@ -320,7 +333,7 @@ class KycController extends GetxController {
               ),
               const SizedBox(height: 8),
               Text(
-                'Congratulations ${fullNameController.text.trim()}! Your full KYC profile has been created and verified. Monthly wallet limit upgraded to ₹2,00,000.',
+                'Congratulations ${updatedUser.name}! Your full KYC profile has been verified. Monthly wallet limit upgraded to ₹2,00,000.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
               ),
@@ -330,7 +343,11 @@ class KycController extends GetxController {
                 child: ElevatedButton(
                   onPressed: () {
                     Get.back(); // close dialog
-                    Get.back(); // return to previous screen
+                    if (fromOnboarding) {
+                      Get.offAllNamed(AppRoutes.home);
+                    } else {
+                      Get.back(); // return to previous screen
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryBlue,
@@ -338,7 +355,10 @@ class KycController extends GetxController {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 13),
                   ),
-                  child: const Text('Go to Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: Text(
+                    fromOnboarding ? 'Go to Home Dashboard' : 'Back to Profile',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ],

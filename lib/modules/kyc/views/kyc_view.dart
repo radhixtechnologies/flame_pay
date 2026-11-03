@@ -45,6 +45,14 @@ class KycView extends GetView<KycController> {
   }
 
   Widget _buildVerifiedBanner(BuildContext context) {
+    final user = controller.authService.currentUser.value;
+    final displayName = (user != null && user.name.isNotEmpty && user.name != 'User') 
+        ? user.name 
+        : (controller.fullNameController.text.isNotEmpty ? controller.fullNameController.text : 'FlamePay Member');
+    final displayPan = (user?.pan != null && user!.pan!.isNotEmpty)
+        ? user.pan!
+        : (controller.panController.text.isNotEmpty ? controller.panController.text : 'PAN Verified');
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -90,18 +98,18 @@ class KycView extends GetView<KycController> {
                 const SizedBox(height: 20),
                 const Divider(),
                 const SizedBox(height: 12),
-                _buildInfoRow('Name as per Aadhaar', controller.fullNameController.text),
-                _buildInfoRow('PAN Number', controller.panController.text),
+                _buildInfoRow('Name as per Aadhaar', displayName),
+                _buildInfoRow('PAN Number', displayPan),
                 _buildInfoRow('Monthly Wallet Limit', '₹2,00,000'),
                 _buildInfoRow('Bank P2P Transfers', 'Unlimited & Free'),
-                _buildInfoRow('Verification Date', '26 Oct 2026'),
+                _buildInfoRow('KYC Status', 'Active & Verified ✓'),
               ],
             ),
           ),
           const SizedBox(height: 24),
           AppButton(
-            text: 'Back to Profile',
-            onPressed: () => Get.back(),
+            text: 'Go to Dashboard',
+            onPressed: () => Get.offAllNamed(AppRoutes.home),
           ),
         ],
       ),

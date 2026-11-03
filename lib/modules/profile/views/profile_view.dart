@@ -48,13 +48,32 @@ class ProfileView extends GetView<ProfileController> {
                     subtitle: 'Update your name, email and details',
                     onTap: () => controller.showEditProfileDialog(context),
                   ),
-                  _ProfileMenuItem(
-                    icon: Icons.verified_user_rounded,
-                    iconColor: AppColors.success,
-                    title: 'KYC Verification',
-                    subtitle: 'Tier 2 • Limit ₹2,00,000/month',
-                    onTap: () => Get.toNamed(AppRoutes.kyc),
-                  ),
+                  Obx(() {
+                    final user = controller.authService.currentUser.value;
+                    final isVerified = user?.kycStatus == 'verified';
+                    return _ProfileMenuItem(
+                      icon: Icons.verified_user_rounded,
+                      iconColor: isVerified ? AppColors.success : AppColors.accentOrange,
+                      title: 'KYC Verification',
+                      subtitle: isVerified ? 'Tier 2 • Verified (Limit ₹2,00,000)' : 'Action Required • Complete KYC Now',
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: isVerified ? AppColors.tintGreen : AppColors.tintOrange,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          isVerified ? 'Verified ✓' : 'Pending',
+                          style: TextStyle(
+                            color: isVerified ? AppColors.success : AppColors.accentOrange,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      onTap: () => Get.toNamed(AppRoutes.kyc),
+                    );
+                  }),
                   _ProfileMenuItem(
                     icon: Icons.account_balance_wallet_rounded,
                     iconColor: AppColors.primaryBlue,
@@ -310,6 +329,7 @@ class _ProfileMenuItem extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   const _ProfileMenuItem({
     required this.icon,
@@ -317,6 +337,7 @@ class _ProfileMenuItem extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.trailing,
   });
 
   @override
@@ -348,7 +369,7 @@ class _ProfileMenuItem extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textSecondary),
+            trailing ?? const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textSecondary),
           ],
         ),
       ),

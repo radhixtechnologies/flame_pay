@@ -48,7 +48,7 @@ class RegistrationController extends GetxController {
         if (res.data!.user != null) {
           _authService.setUser(res.data!.user!);
         }
-        Get.offAllNamed(AppRoutes.mpinSetup);
+        Get.offAllNamed(AppRoutes.mpinSetup, arguments: {'fromRegistration': true, 'name': nameController.text.trim()});
       } else {
         AppSnackbar.showError(res.message, title: 'API Error');
       }

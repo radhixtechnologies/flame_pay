@@ -161,6 +161,74 @@ class HomeView extends GetView<HomeController> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Prominent KYC Action Banner for Pending Users
+                    Obx(() {
+                      final user = controller.authService.currentUser.value;
+                      if (user != null && user.kycStatus == 'verified') {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: InkWell(
+                          onTap: () => Get.toNamed(AppRoutes.kyc),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppColors.flameOrange.withValues(alpha: 0.12),
+                                  AppColors.accentOrange.withValues(alpha: 0.06),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.accentOrange.withValues(alpha: 0.4)),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.tintOrange,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: const Icon(Icons.shield_outlined, color: AppColors.accentOrange, size: 24),
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Complete Full KYC Verification',
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navyText),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        'Verify PAN & Aadhaar to upgrade limit to ₹2 Lakhs',
+                                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentOrange,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Text(
+                                    'Verify',
+                                    style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
                     // Promo Cashback Banner
                     const PromoBanner(),
 
