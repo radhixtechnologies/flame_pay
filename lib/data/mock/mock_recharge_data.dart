@@ -110,34 +110,94 @@ class MockRechargeData {
   ];
 
   static const List<OperatorModel> billers = [
-    // Electricity
+    // --- Electricity (Pan-India State Boards & Discoms) ---
+    // Delhi
     OperatorModel(id: 'tata_power_delhi', name: 'Tata Power Delhi Distribution (TPDDL)', type: 'electricity'),
-    OperatorModel(id: 'bses_rajdhani', name: 'BSES Rajdhani Power Limited', type: 'electricity'),
-    OperatorModel(id: 'bses_yamuna', name: 'BSES Yamuna Power Limited', type: 'electricity'),
+    OperatorModel(id: 'bses_rajdhani', name: 'BSES Rajdhani Power Limited (BRPL Delhi)', type: 'electricity'),
+    OperatorModel(id: 'bses_yamuna', name: 'BSES Yamuna Power Limited (BYPL Delhi)', type: 'electricity'),
+    OperatorModel(id: 'ndmc_delhi', name: 'New Delhi Municipal Council (NDMC Electricity)', type: 'electricity'),
+
+    // Maharashtra & Mumbai
     OperatorModel(id: 'adani_mumbai', name: 'Adani Electricity Mumbai Limited', type: 'electricity'),
-    OperatorModel(id: 'bescom', name: 'Bangalore Electricity (BESCOM)', type: 'electricity'),
-    OperatorModel(id: 'uppcl_urban', name: 'UPPCL (Urban Electricity)', type: 'electricity'),
-    OperatorModel(id: 'mseb', name: 'Mahavitaran (MSEDCL Maharashtra)', type: 'electricity'),
+    OperatorModel(id: 'tata_power_mumbai', name: 'Tata Power Mumbai Distribution', type: 'electricity'),
+    OperatorModel(id: 'best_mumbai', name: 'BEST Undertaking Mumbai', type: 'electricity'),
+    OperatorModel(id: 'mseb', name: 'Mahavitaran (MSEDCL Maharashtra State)', type: 'electricity'),
 
-    // Water
+    // Uttar Pradesh
+    OperatorModel(id: 'uppcl_urban', name: 'UPPCL (Urban Electricity Uttar Pradesh)', type: 'electricity'),
+    OperatorModel(id: 'uppcl_rural', name: 'UPPCL (Rural Electricity Uttar Pradesh)', type: 'electricity'),
+    OperatorModel(id: 'npcl_noida', name: 'Noida Power Company Limited (NPCL)', type: 'electricity'),
+    OperatorModel(id: 'torrent_power_agra', name: 'Torrent Power (Agra)', type: 'electricity'),
+
+    // Haryana & Punjab
+    OperatorModel(id: 'dhbvn_haryana', name: 'Dakshin Haryana Bijli Vitran Nigam (DHBVN)', type: 'electricity'),
+    OperatorModel(id: 'uhbvn_haryana', name: 'Uttar Haryana Bijli Vitran Nigam (UHBVN)', type: 'electricity'),
+    OperatorModel(id: 'pspcl_punjab', name: 'Punjab State Power Corporation (PSPCL)', type: 'electricity'),
+
+    // Rajasthan
+    OperatorModel(id: 'jvvnl_jaipur', name: 'Jaipur Vidyut Vitran Nigam (JVVNL)', type: 'electricity'),
+    OperatorModel(id: 'jdvvnl_jodhpur', name: 'Jodhpur Vidyut Vitran Nigam (JDVVNL)', type: 'electricity'),
+    OperatorModel(id: 'avvnl_ajmer', name: 'Ajmer Vidyut Vitran Nigam (AVVNL)', type: 'electricity'),
+
+    // Gujarat
+    OperatorModel(id: 'torrent_power_gujarat', name: 'Torrent Power (Ahmedabad / Surat / Gandhinagar)', type: 'electricity'),
+    OperatorModel(id: 'ugvcl_gujarat', name: 'Uttar Gujarat Vij Company (UGVCL)', type: 'electricity'),
+    OperatorModel(id: 'dgvcl_gujarat', name: 'Dakshin Gujarat Vij Company (DGVCL)', type: 'electricity'),
+    OperatorModel(id: 'mgvcl_gujarat', name: 'Madhya Gujarat Vij Company (MGVCL)', type: 'electricity'),
+    OperatorModel(id: 'pgvcl_gujarat', name: 'Paschim Gujarat Vij Company (PGVCL)', type: 'electricity'),
+
+    // Karnataka
+    OperatorModel(id: 'bescom', name: 'Bangalore Electricity Supply Company (BESCOM)', type: 'electricity'),
+    OperatorModel(id: 'hescom', name: 'Hubli Electricity Supply (HESCOM)', type: 'electricity'),
+    OperatorModel(id: 'mescom', name: 'Mangalore Electricity Supply (MESCOM)', type: 'electricity'),
+
+    // Madhya Pradesh
+    OperatorModel(id: 'mp_poorv_vitaran', name: 'MP Poorv Kshetra Vidyut Vitaran (Jabalpur)', type: 'electricity'),
+    OperatorModel(id: 'mp_madhya_vitaran', name: 'MP Madhya Kshetra Vidyut Vitaran (Bhopal)', type: 'electricity'),
+    OperatorModel(id: 'mp_paschim_vitaran', name: 'MP Paschim Kshetra Vidyut Vitaran (Indore)', type: 'electricity'),
+
+    // West Bengal & Bihar
+    OperatorModel(id: 'cesc_kolkata', name: 'CESC Limited (Kolkata & Howrah)', type: 'electricity'),
+    OperatorModel(id: 'wbsedcl_bengal', name: 'West Bengal State Electricity (WBSEDCL)', type: 'electricity'),
+    OperatorModel(id: 'nbpdcl_bihar', name: 'North Bihar Power Distribution (NBPDCL)', type: 'electricity'),
+    OperatorModel(id: 'sbpdcl_bihar', name: 'South Bihar Power Distribution (SBPDCL)', type: 'electricity'),
+
+    // South India (Tamil Nadu, Telangana, Andhra)
+    OperatorModel(id: 'tangedco_tamilnadu', name: 'Tamil Nadu Electricity Board (TANGEDCO)', type: 'electricity'),
+    OperatorModel(id: 'tsspdcl_telangana', name: 'Telangana Southern Power (TSSPDCL)', type: 'electricity'),
+    OperatorModel(id: 'apspdcl_andhra', name: 'Andhra Pradesh Southern Power (APSPDCL)', type: 'electricity'),
+
+    // --- Water Utilities ---
     OperatorModel(id: 'delhi_jal_board', name: 'Delhi Jal Board (DJB)', type: 'water'),
-    OperatorModel(id: 'mcgm_water', name: 'Municipal Corp of Greater Mumbai', type: 'water'),
-    OperatorModel(id: 'bwssb_water', name: 'Bangalore Water Supply (BWSSB)', type: 'water'),
+    OperatorModel(id: 'mcgm_water', name: 'Municipal Corp of Greater Mumbai (MCGM)', type: 'water'),
+    OperatorModel(id: 'bwssb_water', name: 'Bangalore Water Supply & Sewerage (BWSSB)', type: 'water'),
+    OperatorModel(id: 'hmwssb_hyderabad', name: 'Hyderabad Metro Water (HMWSSB)', type: 'water'),
+    OperatorModel(id: 'cmwssb_chennai', name: 'Chennai Metro Water (CMWSSB)', type: 'water'),
+    OperatorModel(id: 'up_jal_sansthan', name: 'UP Jal Sansthan (Uttar Pradesh)', type: 'water'),
 
-    // Piped Gas
-    OperatorModel(id: 'igl_gas', name: 'Indraprastha Gas Limited (IGL)', type: 'gas'),
-    OperatorModel(id: 'mgl_gas', name: 'Mahanagar Gas Limited (MGL)', type: 'gas'),
-    OperatorModel(id: 'adani_gas', name: 'Adani Total Gas', type: 'gas'),
+    // --- Piped Gas ---
+    OperatorModel(id: 'igl_gas', name: 'Indraprastha Gas Limited (IGL Delhi NCR)', type: 'gas'),
+    OperatorModel(id: 'mgl_gas', name: 'Mahanagar Gas Limited (MGL Mumbai)', type: 'gas'),
+    OperatorModel(id: 'adani_gas', name: 'Adani Total Gas Limited', type: 'gas'),
+    OperatorModel(id: 'gujarat_gas', name: 'Gujarat Gas Limited (GGL)', type: 'gas'),
+    OperatorModel(id: 'gail_gas', name: 'GAIL Gas Limited', type: 'gas'),
+    OperatorModel(id: 'haryana_city_gas', name: 'Haryana City Gas (Gurugram)', type: 'gas'),
 
-    // Broadband
-    OperatorModel(id: 'airtel_broadband', name: 'Airtel Xstream Fiber', type: 'broadband'),
+    // --- Broadband & Fiber ---
+    OperatorModel(id: 'airtel_broadband', name: 'Airtel Xstream Fiber Broadband', type: 'broadband'),
     OperatorModel(id: 'jio_fiber', name: 'JioFiber Broadband', type: 'broadband'),
     OperatorModel(id: 'act_fibernet', name: 'ACT Fibernet', type: 'broadband'),
+    OperatorModel(id: 'bsnl_broadband', name: 'BSNL Bharat Fiber Broadband', type: 'broadband'),
+    OperatorModel(id: 'tata_play_fiber', name: 'Tata Play Fiber', type: 'broadband'),
+    OperatorModel(id: 'hathway_broadband', name: 'Hathway Broadband', type: 'broadband'),
 
-    // Loan / EMI
-    OperatorModel(id: 'bajaj_finserv', name: 'Bajaj Finance Limited', type: 'emi'),
+    // --- Loan / EMI ---
+    OperatorModel(id: 'bajaj_finserv', name: 'Bajaj Finance Limited (EMI)', type: 'emi'),
     OperatorModel(id: 'hdfc_bank_loan', name: 'HDFC Bank Personal Loan EMI', type: 'emi'),
-    OperatorModel(id: 'idfc_first_loan', name: 'IDFC FIRST Bank Loan', type: 'emi'),
+    OperatorModel(id: 'idfc_first_loan', name: 'IDFC FIRST Bank Loan EMI', type: 'emi'),
     OperatorModel(id: 'tata_capital', name: 'Tata Capital Financial Services', type: 'emi'),
+    OperatorModel(id: 'hero_fincorp', name: 'Hero FinCorp Limited', type: 'emi'),
+    OperatorModel(id: 'muthoot_finance', name: 'Muthoot Finance Loan Repayment', type: 'emi'),
+    OperatorModel(id: 'lnt_finance', name: 'L&T Finance Limited', type: 'emi'),
   ];
 }

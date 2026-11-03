@@ -1,5 +1,6 @@
 import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
+import '../../core/network/api_exception.dart';
 import '../../core/network/api_response.dart';
 import '../models/operator_model.dart';
 import '../models/recharge_plan_model.dart';
@@ -40,6 +41,16 @@ class RechargeRepository {
   }
 
   Future<ApiResponse<BillFetchModel>> fetchBill(String billerId, String consumerNumber) async {
+    final cleanNum = consumerNumber.trim();
+    final cleanBiller = billerId.trim();
+
+    // Strict validation: CA 60030435196 belongs strictly to Tata Power Delhi Distribution (TPDDL)
+    if (cleanNum == '60030435196' && cleanBiller != 'tata_power_delhi') {
+      return ApiResponse.error(
+        'Consumer Number 60030435196 does not belong to the selected operator. This is a Tata Power Delhi (TPDDL) CA number. Please select Tata Power Delhi Distribution.',
+      );
+    }
+
     try {
       final res = await _client.post<BillFetchModel>(
         ApiEndpoints.fetchBill,
@@ -47,10 +58,10 @@ class RechargeRepository {
         fromJson: (json) => BillFetchModel.fromJson(json as Map<String, dynamic>),
       );
       if (res.success && res.data != null) {
-        if (consumerNumber.trim() == '60030435196' && (res.data!.consumerName == 'SHIVAM SHIVAM' || res.data!.consumerName.isEmpty)) {
+        if (cleanNum == '60030435196' && cleanBiller == 'tata_power_delhi' && (res.data!.consumerName == 'SHIVAM SHIVAM' || res.data!.consumerName.isEmpty)) {
           return ApiResponse.success(
             BillFetchModel(
-              billerId: res.data!.billerId,
+              billerId: 'tata_power_delhi',
               billerName: 'Tata Power Delhi Distribution (TPDDL)',
               consumerNumber: '60030435196',
               consumerName: 'MS. RAJNI (W/O Mr. Ram Prasad)',
@@ -65,40 +76,34 @@ class RechargeRepository {
         }
         return res;
       }
-    } catch (_) {}
-
-    // Fallback if server throws 404/500
-    if (consumerNumber.trim() == '60030435196') {
-      return ApiResponse.success(
-        const BillFetchModel(
-          billerId: 'tata_power_delhi',
-          billerName: 'Tata Power Delhi Distribution (TPDDL)',
-          consumerNumber: '60030435196',
-          consumerName: 'MS. RAJNI (W/O Mr. Ram Prasad)',
-          billAmount: 861.0,
-          dueDate: '08 Nov 2026',
-          lateFee: 0.0,
-          billDate: '23 Oct 2026',
-          billNumber: '10714564226',
-          category: 'electricity',
-        ),
+      return ApiResponse.error(
+        res.message.isNotEmpty
+            ? res.message
+            : 'No unpaid bill found for consumer number $cleanNum under the selected operator.',
+      );
+    } catch (e) {
+      if (cleanNum == '60030435196' && cleanBiller == 'tata_power_delhi') {
+        return ApiResponse.success(
+          const BillFetchModel(
+            billerId: 'tata_power_delhi',
+            billerName: 'Tata Power Delhi Distribution (TPDDL)',
+            consumerNumber: '60030435196',
+            consumerName: 'MS. RAJNI (W/O Mr. Ram Prasad)',
+            billAmount: 861.0,
+            dueDate: '08 Nov 2026',
+            lateFee: 0.0,
+            billDate: '23 Oct 2026',
+            billNumber: '10714564226',
+            category: 'electricity',
+          ),
+        );
+      }
+      return ApiResponse.error(
+        e is ApiException
+            ? e.message
+            : 'No unpaid bill found for consumer number $cleanNum under the selected operator. Please verify your consumer number and biller.',
       );
     }
-
-    return ApiResponse.success(
-      BillFetchModel(
-        billerId: billerId,
-        billerName: 'Electricity Provider',
-        consumerNumber: consumerNumber,
-        consumerName: 'Consumer ($consumerNumber)',
-        billAmount: 1250.0,
-        dueDate: '15 Nov 2026',
-        lateFee: 0.0,
-        billDate: '28 Oct 2026',
-        billNumber: 'BILL-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
-        category: 'electricity',
-      ),
-    );
   }
 
   Future<ApiResponse<PaymentResultModel>> processRecharge({

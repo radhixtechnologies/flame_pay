@@ -51,20 +51,20 @@ class _OperatorSelectorSheetState extends State<OperatorSelectorSheet> {
           (op.code?.toLowerCase().contains(_searchQuery.toLowerCase()) ?? false);
     }).toList();
 
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.75,
+    return Material(
+      color: Colors.white,
+      clipBehavior: Clip.antiAlias,
+      borderRadius: const BorderRadius.only(
+        topLeft: Radius.circular(28),
+        topRight: Radius.circular(28),
       ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(28),
-          topRight: Radius.circular(28),
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
         ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           const SizedBox(height: 12),
           Container(
             width: 44,
@@ -135,45 +135,48 @@ class _OperatorSelectorSheetState extends State<OperatorSelectorSheet> {
                     itemBuilder: (context, index) {
                       final op = filtered[index];
                       final isSelected = widget.selectedOperator?.id == op.id;
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(vertical: 4),
-                        leading: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: AppColors.tintBlue,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Center(
-                            child: Icon(
-                              op.type == 'dth'
-                                  ? Icons.tv_rounded
-                                  : op.type == 'electricity'
-                                      ? Icons.bolt_rounded
-                                      : op.type == 'water'
-                                          ? Icons.water_drop_rounded
-                                          : op.type == 'gas'
-                                              ? Icons.local_fire_department_rounded
-                                              : op.type == 'broadband'
-                                                  ? Icons.wifi_rounded
-                                                  : op.type == 'emi'
-                                                      ? Icons.account_balance_rounded
-                                                      : Icons.sim_card_rounded,
-                              color: AppColors.primaryBlue,
-                              size: 22,
+                      return Material(
+                        color: Colors.transparent,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                          leading: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppColors.tintBlue,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                op.type == 'dth'
+                                    ? Icons.tv_rounded
+                                    : op.type == 'electricity'
+                                        ? Icons.bolt_rounded
+                                        : op.type == 'water'
+                                            ? Icons.water_drop_rounded
+                                            : op.type == 'gas'
+                                                ? Icons.local_fire_department_rounded
+                                                : op.type == 'broadband'
+                                                    ? Icons.wifi_rounded
+                                                    : op.type == 'emi'
+                                                        ? Icons.account_balance_rounded
+                                                        : Icons.sim_card_rounded,
+                                color: AppColors.primaryBlue,
+                                size: 22,
+                              ),
                             ),
                           ),
-                        ),
-                        title: Text(
-                          op.name,
-                          style: AppTypography.bodyBold.copyWith(
-                            color: isSelected ? AppColors.primaryBlue : AppColors.navyText,
+                          title: Text(
+                            op.name,
+                            style: AppTypography.bodyBold.copyWith(
+                              color: isSelected ? AppColors.primaryBlue : AppColors.navyText,
+                            ),
                           ),
+                          trailing: isSelected
+                              ? const Icon(Icons.check_circle_rounded, color: AppColors.primaryBlue)
+                              : const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+                          onTap: () => widget.onSelect(op),
                         ),
-                        trailing: isSelected
-                            ? const Icon(Icons.check_circle_rounded, color: AppColors.primaryBlue)
-                            : const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-                        onTap: () => widget.onSelect(op),
                       );
                     },
                   ),
@@ -181,6 +184,7 @@ class _OperatorSelectorSheetState extends State<OperatorSelectorSheet> {
           const SizedBox(height: 16),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }
