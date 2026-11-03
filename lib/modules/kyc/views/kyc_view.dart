@@ -1,3 +1,4 @@
+import 'dart:io';
 import '../../../app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -15,7 +16,6 @@ class KycView extends GetView<KycController> {
   Widget build(BuildContext context) {
     return BlueHeaderScaffold(
       title: 'KYC Verification',
-      
       body: Obx(() {
         if (controller.isKycCompleted.value) {
           return _buildVerifiedBanner(context);
@@ -276,7 +276,6 @@ class KycView extends GetView<KycController> {
           AppTextField(
             label: 'PAN Card Number (10 Alphanumeric)',
             controller: controller.panController,
-            
             prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.primaryBlue, size: 20),
           ),
           const SizedBox(height: 14),
@@ -312,29 +311,32 @@ class KycView extends GetView<KycController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Document Photos', style: AppTypography.title),
+          Text('Upload Real ID Photos', style: AppTypography.title),
           const SizedBox(height: 4),
-          Text('Ensure photos are clearly lit and text is readable', style: AppTypography.caption),
+          Text('Take a real photo with camera or choose from gallery', style: AppTypography.caption),
           const SizedBox(height: 16),
           Obx(() => _buildUploadCard(
-                title: 'Aadhaar Card (Front)',
-                subtitle: 'Front side with photo and address',
+                title: 'Aadhaar Card (Front Side)',
+                subtitle: 'Front side with photo and address clearly visible',
                 isUploaded: controller.aadhaarFrontUploaded.value,
-                onTap: () => controller.simulateUpload('aadhaar_front'),
+                file: controller.aadhaarFrontFile.value,
+                onTap: () => controller.pickDocumentImage('aadhaar_front'),
               )),
           const SizedBox(height: 12),
           Obx(() => _buildUploadCard(
-                title: 'Aadhaar Card (Back)',
-                subtitle: 'Back side with QR code and address',
+                title: 'Aadhaar Card (Back Side)',
+                subtitle: 'Back side showing full address & UIDAI barcode',
                 isUploaded: controller.aadhaarBackUploaded.value,
-                onTap: () => controller.simulateUpload('aadhaar_back'),
+                file: controller.aadhaarBackFile.value,
+                onTap: () => controller.pickDocumentImage('aadhaar_back'),
               )),
           const SizedBox(height: 12),
           Obx(() => _buildUploadCard(
-                title: 'PAN Card (Front)',
-                subtitle: 'Front photo with signature clearly visible',
+                title: 'PAN Card (Front Side)',
+                subtitle: 'Front side photo with signature & PAN clearly readable',
                 isUploaded: controller.panUploaded.value,
-                onTap: () => controller.simulateUpload('pan'),
+                file: controller.panFile.value,
+                onTap: () => controller.pickDocumentImage('pan'),
               )),
           const SizedBox(height: 20),
           Row(
@@ -369,13 +371,26 @@ class KycView extends GetView<KycController> {
     required String title,
     required String subtitle,
     required bool isUploaded,
+    File? file,
     required VoidCallback onTap,
   }) {
+    String filename = '';
+    String filesize = '';
+    if (file != null) {
+      filename = file.path.split(Platform.pathSeparator).last;
+      try {
+        final bytes = file.lengthSync();
+        filesize = bytes >= 1048576 
+            ? '${(bytes / 1048576).toStringAsFixed(1)} MB' 
+            : '${(bytes / 1024).toStringAsFixed(0)} KB';
+      } catch (_) {}
+    }
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isUploaded ? const Color(0xFFF6FEF9) : const Color(0xFFF9FAFB),
           borderRadius: BorderRadius.circular(12),
@@ -387,17 +402,27 @@ class KycView extends GetView<KycController> {
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 52,
+              height: 52,
               decoration: BoxDecoration(
                 color: isUploaded ? const Color(0xFFD1FADF) : Colors.white,
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: isUploaded ? AppColors.success.withValues(alpha: 0.3) : AppColors.border),
               ),
-              child: Icon(
-                isUploaded ? Icons.check_circle_rounded : Icons.cloud_upload_outlined,
-                color: isUploaded ? AppColors.success : AppColors.primaryBlue,
-                size: 24,
-              ),
+              clipBehavior: Clip.antiAlias,
+              child: (isUploaded && file != null && file.existsSync())
+                  ? Image.file(
+                      file,
+                      width: 52,
+                      height: 52,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 26),
+                    )
+                  : Icon(
+                      isUploaded ? Icons.check_circle_rounded : Icons.camera_alt_outlined,
+                      color: isUploaded ? AppColors.success : AppColors.primaryBlue,
+                      size: 24,
+                    ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -406,18 +431,29 @@ class KycView extends GetView<KycController> {
                 children: [
                   Text(title, style: AppTypography.bodyBold.copyWith(fontSize: 13)),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: AppTypography.micro.copyWith(color: AppColors.textSecondary)),
+                  Text(
+                    isUploaded && filename.isNotEmpty
+                        ? 'Attached: $filename ($filesize)'
+                        : subtitle,
+                    style: AppTypography.micro.copyWith(
+                      color: isUploaded ? AppColors.success : AppColors.textSecondary,
+                      fontWeight: isUploaded ? FontWeight.w600 : FontWeight.normal,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: isUploaded ? AppColors.success : AppColors.primaryBlue,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                isUploaded ? 'Replace' : 'Upload',
+                isUploaded ? 'Change' : 'Upload',
                 style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
               ),
             ),
@@ -437,13 +473,15 @@ class KycView extends GetView<KycController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Live Selfie Verification', style: AppTypography.title),
+          Text('Live Selfie Photo Verification', style: AppTypography.title),
           const SizedBox(height: 4),
-          Text('Take a clear selfie without glasses, masks, or caps', style: AppTypography.caption),
+          Text('Capture or upload your live photo without glasses or masks', style: AppTypography.caption),
           const SizedBox(height: 20),
           Center(
             child: Obx(() {
               final done = controller.selfieCaptured.value;
+              final file = controller.selfieFile.value;
+
               return Column(
                 children: [
                   Container(
@@ -457,17 +495,28 @@ class KycView extends GetView<KycController> {
                         width: 3,
                       ),
                     ),
-                    child: Center(
-                      child: Icon(
-                        done ? Icons.face_retouching_natural_rounded : Icons.camera_alt_outlined,
-                        size: 54,
-                        color: done ? AppColors.success : AppColors.primaryBlue,
-                      ),
-                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: (done && file != null && file.existsSync())
+                        ? Image.file(
+                            file,
+                            width: 140,
+                            height: 140,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const Center(
+                              child: Icon(Icons.face_retouching_natural_rounded, size: 54, color: AppColors.success),
+                            ),
+                          )
+                        : Center(
+                            child: Icon(
+                              done ? Icons.face_retouching_natural_rounded : Icons.camera_alt_outlined,
+                              size: 54,
+                              color: done ? AppColors.success : AppColors.primaryBlue,
+                            ),
+                          ),
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    done ? 'Selfie Matched & Verified!' : 'Align face in the center',
+                    done ? 'Real Selfie Captured & Matched!' : 'Align face in the center',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: done ? AppColors.success : AppColors.navyText,
@@ -475,12 +524,13 @@ class KycView extends GetView<KycController> {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
-                    onPressed: () => controller.simulateUpload('selfie'),
-                    icon: Icon(done ? Icons.refresh : Icons.camera_alt, size: 18),
-                    label: Text(done ? 'Retake Photo' : 'Capture Live Photo'),
+                    onPressed: controller.captureLiveSelfie,
+                    icon: Icon(done ? Icons.refresh_rounded : Icons.camera_alt_rounded, size: 18),
+                    label: Text(done ? 'Retake Selfie Photo' : 'Capture Live Selfie'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: done ? Colors.grey.shade700 : AppColors.primaryBlue,
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
@@ -506,7 +556,7 @@ class KycView extends GetView<KycController> {
               Expanded(
                 flex: 2,
                 child: Obx(() => AppButton(
-                      text: 'Submit Full KYC',
+                      text: 'Submit Real KYC',
                       isLoading: controller.isSubmitting.value,
                       onPressed: controller.submitKyc,
                     )),
