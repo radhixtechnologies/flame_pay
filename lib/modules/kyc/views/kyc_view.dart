@@ -286,10 +286,43 @@ class KycView extends GetView<KycController> {
             prefixIcon: const Icon(Icons.fingerprint_rounded, color: AppColors.primaryBlue, size: 20),
           ),
           const SizedBox(height: 14),
-          AppTextField(
-            label: 'Date of Birth (DD/MM/YYYY)',
-            controller: controller.dobController,
-            prefixIcon: const Icon(Icons.calendar_today_outlined, color: AppColors.primaryBlue, size: 20),
+          GestureDetector(
+            onTap: () async {
+              DateTime initial = DateTime(2000, 1, 1);
+              final currentText = controller.dobController.text.trim();
+              if (currentText.contains('/')) {
+                final parts = currentText.split('/');
+                if (parts.length == 3) {
+                  final d = int.tryParse(parts[0]);
+                  final m = int.tryParse(parts[1]);
+                  final y = int.tryParse(parts[2]);
+                  if (d != null && m != null && y != null) {
+                    initial = DateTime(y, m, d);
+                  }
+                }
+              }
+              final picked = await showDatePicker(
+                context: Get.context!,
+                initialDate: initial,
+                firstDate: DateTime(1940),
+                lastDate: DateTime.now().subtract(const Duration(days: 365 * 18)),
+                helpText: 'Select Date of Birth (Min 18 Years)',
+              );
+              if (picked != null) {
+                final dd = picked.day.toString().padLeft(2, '0');
+                final mm = picked.month.toString().padLeft(2, '0');
+                final yyyy = picked.year.toString();
+                controller.dobController.text = '$dd/$mm/$yyyy';
+              }
+            },
+            child: AbsorbPointer(
+              child: AppTextField(
+                label: 'Date of Birth (DD/MM/YYYY)',
+                controller: controller.dobController,
+                hint: 'Tap to select birth date from calendar',
+                prefixIcon: const Icon(Icons.calendar_month_rounded, color: AppColors.primaryBlue, size: 20),
+              ),
+            ),
           ),
           const SizedBox(height: 20),
           AppButton(

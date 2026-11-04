@@ -1,5 +1,6 @@
 class TransactionModel {
   final String id;
+  final String? userId;
   final String title;
   final String subtitle;
   final double amount;
@@ -11,6 +12,7 @@ class TransactionModel {
 
   const TransactionModel({
     required this.id,
+    this.userId,
     required this.title,
     required this.subtitle,
     required this.amount,
@@ -24,6 +26,7 @@ class TransactionModel {
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
     return TransactionModel(
       id: json['id'] as String? ?? '',
+      userId: json['userId'] as String?,
       title: json['title'] as String? ?? 'Payment',
       subtitle: json['subtitle'] as String? ?? '',
       amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
@@ -40,6 +43,7 @@ class TransactionModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      if (userId != null) 'userId': userId,
       'title': title,
       'subtitle': subtitle,
       'amount': amount,

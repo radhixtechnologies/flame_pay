@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_endpoints.dart';
+import '../../core/services/auth_service.dart';
 import '../../data/models/transaction_model.dart';
 import '../../shared/widgets/state_view.dart';
 import '../../core/theme/app_colors.dart';
@@ -36,7 +37,23 @@ class HistoryController extends GetxController {
       );
 
       if (res.success && res.data != null) {
-        allTransactions.assignAll(res.data!);
+        final authService = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;
+        final user = authService?.currentUser.value;
+        final currentId = user?.id;
+        final currentPhoneClean = user?.phone.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+
+        final filteredForUser = res.data!.where((t) {
+          if (currentId != null && t.userId != null && t.userId == currentId) return true;
+          if (currentPhoneClean.length >= 10 && t.mobile != null) {
+            final tMob = t.mobile!.replaceAll(RegExp(r'[^0-9]'), '');
+            if (tMob.length >= 10 && (tMob.endsWith(currentPhoneClean.substring(currentPhoneClean.length - 10)) || currentPhoneClean.endsWith(tMob.substring(tMob.length - 10)))) {
+              return true;
+            }
+          }
+          return false;
+        }).toList();
+
+        allTransactions.assignAll(filteredForUser);
         applyFilter();
         viewState.value = ViewState.success;
       } else {

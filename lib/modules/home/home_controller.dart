@@ -54,7 +54,22 @@ class HomeController extends GetxController {
 
       final txnRes = await _repo.getRecentTransactions();
       if (txnRes.success && txnRes.data != null) {
-        recentTransactions.assignAll(txnRes.data!);
+        final user = authService.currentUser.value;
+        final currentId = user?.id;
+        final currentPhoneClean = user?.phone.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+
+        final filteredForUser = txnRes.data!.where((t) {
+          if (currentId != null && t.userId != null && t.userId == currentId) return true;
+          if (currentPhoneClean.length >= 10 && t.mobile != null) {
+            final tMob = t.mobile!.replaceAll(RegExp(r'[^0-9]'), '');
+            if (tMob.length >= 10 && (tMob.endsWith(currentPhoneClean.substring(currentPhoneClean.length - 10)) || currentPhoneClean.endsWith(tMob.substring(tMob.length - 10)))) {
+              return true;
+            }
+          }
+          return false;
+        }).toList();
+
+        recentTransactions.assignAll(filteredForUser);
       }
 
       final offersRes = await _repo.getOffers();

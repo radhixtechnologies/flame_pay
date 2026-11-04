@@ -7,6 +7,7 @@ import '../../../core/network/api_client.dart';
 import '../../../core/network/api_endpoints.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/document_validator.dart';
 import '../../../data/models/user_model.dart';
 
 class KycController extends GetxController {
@@ -359,23 +360,24 @@ class KycController extends GetxController {
       );
       if (picked != null) {
         final file = File(picked.path);
-        final fileSize = await file.length();
 
-        // Strict Validation: Real documents taken by phone or gallery are >= 20 KB
-        if (fileSize < 20 * 1024) {
+        // Strict AI Inspection: Check if the photo is a real card or random object (laptop, floor, dark surface)
+        final validationError = await DocumentValidator.validateCardImage(file, docType: docType);
+        if (validationError != null) {
           Get.snackbar(
             'Documents Sahi Se Upload Karo',
-            'Photo bohot chhoti ya khali file lag rahi hai (${(fileSize / 1024).toStringAsFixed(1)} KB). Kripya original card ki clear aur readable photo upload karein.',
+            validationError,
             backgroundColor: AppColors.error.withValues(alpha: 0.15),
             colorText: AppColors.error,
             icon: const Icon(Icons.error_outline_rounded, color: AppColors.error),
             snackPosition: SnackPosition.BOTTOM,
             margin: const EdgeInsets.all(16),
-            duration: const Duration(seconds: 4),
+            duration: const Duration(seconds: 5),
           );
           return;
         }
 
+        final fileSize = await file.length();
         if (docType == 'aadhaar_front') {
           aadhaarFrontFile.value = file;
           aadhaarFrontUploaded.value = true;
@@ -388,8 +390,8 @@ class KycController extends GetxController {
         }
 
         Get.snackbar(
-          'Document Attached',
-          'Successfully loaded real photo: ${picked.name} (${(fileSize / 1024).toStringAsFixed(1)} KB)',
+          'Document Verified & Attached',
+          'Successfully validated original card: ${picked.name} (${(fileSize / 1024).toStringAsFixed(1)} KB)',
           backgroundColor: AppColors.success.withValues(alpha: 0.15),
           colorText: AppColors.success,
           icon: const Icon(Icons.check_circle_rounded, color: AppColors.success),

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/utils/document_validator.dart';
 import '../../../data/models/loan_model.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -852,37 +853,40 @@ class LoanView extends GetView<LoanController> {
                     final photo = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
                     if (photo != null) {
                       final f = File(photo.path);
-                      final len = await f.length();
-                      if (len < 20 * 1024) {
+                      final valErr = await DocumentValidator.validateCardImage(f, docType: docType);
+                      if (valErr != null) {
                         Get.snackbar(
                           'Documents Sahi Se Upload Karo',
-                          'Photo bohot chhoti ya khali lag rahi hai (' + (len / 1024).toStringAsFixed(1) + ' KB). Kripya original document ki saaf photo upload karein.',
+                          valErr,
                           backgroundColor: AppColors.error.withValues(alpha: 0.15),
                           colorText: AppColors.error,
+                          icon: const Icon(Icons.error_outline_rounded, color: AppColors.error),
                           snackPosition: SnackPosition.BOTTOM,
                           margin: const EdgeInsets.all(16),
+                          duration: const Duration(seconds: 5),
                         );
                         return;
                       }
+                      final len = await f.length();
                       setSheetState(() {
                         final sizeKb = (len / 1024).toStringAsFixed(1);
                         final name = photo.name;
                         if (docType == 'pan') {
                           panFile = f;
                           panUploaded = true;
-                          panSub = name + ' (' + sizeKb + ' KB)';
+                          panSub = '$name ($sizeKb KB)';
                         } else if (docType == 'aadhaar') {
                           aadhaarFile = f;
                           aadhaarUploaded = true;
-                          aadhaarSub = name + ' (' + sizeKb + ' KB)';
+                          aadhaarSub = '$name ($sizeKb KB)';
                         } else if (docType == 'salary') {
                           salarySlipFile = f;
                           salarySlipUploaded = true;
-                          salarySlipSub = name + ' (' + sizeKb + ' KB)';
+                          salarySlipSub = '$name ($sizeKb KB)';
                         } else if (docType == 'bank') {
                           bankStatementFile = f;
                           bankStatementUploaded = true;
-                          bankStatementSub = name + ' (' + sizeKb + ' KB)';
+                          bankStatementSub = '$name ($sizeKb KB)';
                         }
                       });
                     }
@@ -907,37 +911,40 @@ class LoanView extends GetView<LoanController> {
                     final photo = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
                     if (photo != null) {
                       final f = File(photo.path);
-                      final len = await f.length();
-                      if (len < 20 * 1024) {
+                      final valErr = await DocumentValidator.validateCardImage(f, docType: docType);
+                      if (valErr != null) {
                         Get.snackbar(
                           'Documents Sahi Se Upload Karo',
-                          'Photo bohot chhoti ya invalid file lag rahi hai (' + (len / 1024).toStringAsFixed(1) + ' KB). Kripya original document ki saaf photo upload karein.',
+                          valErr,
                           backgroundColor: AppColors.error.withValues(alpha: 0.15),
                           colorText: AppColors.error,
+                          icon: const Icon(Icons.error_outline_rounded, color: AppColors.error),
                           snackPosition: SnackPosition.BOTTOM,
                           margin: const EdgeInsets.all(16),
+                          duration: const Duration(seconds: 5),
                         );
                         return;
                       }
+                      final len = await f.length();
                       setSheetState(() {
                         final sizeKb = (len / 1024).toStringAsFixed(1);
                         final name = photo.name;
                         if (docType == 'pan') {
                           panFile = f;
                           panUploaded = true;
-                          panSub = name + ' (' + sizeKb + ' KB)';
+                          panSub = '$name ($sizeKb KB)';
                         } else if (docType == 'aadhaar') {
                           aadhaarFile = f;
                           aadhaarUploaded = true;
-                          aadhaarSub = name + ' (' + sizeKb + ' KB)';
+                          aadhaarSub = '$name ($sizeKb KB)';
                         } else if (docType == 'salary') {
                           salarySlipFile = f;
                           salarySlipUploaded = true;
-                          salarySlipSub = name + ' (' + sizeKb + ' KB)';
+                          salarySlipSub = '$name ($sizeKb KB)';
                         } else if (docType == 'bank') {
                           bankStatementFile = f;
                           bankStatementUploaded = true;
-                          bankStatementSub = name + ' (' + sizeKb + ' KB)';
+                          bankStatementSub = '$name ($sizeKb KB)';
                         }
                       });
                     }

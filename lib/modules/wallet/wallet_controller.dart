@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/utils/validators.dart';
 import '../../data/repositories/wallet_repository.dart';
 import '../../data/models/transaction_model.dart';
@@ -51,7 +52,7 @@ class WalletController extends GetxController {
 
       final txnRes = await _repo.getWalletTransactions();
       if (txnRes.success && txnRes.data != null) {
-        transactions.assignAll(txnRes.data!);
+        final auth = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null; final user = auth?.currentUser.value; final currentId = user?.id; final currentPhoneClean = user?.phone.replaceAll(RegExp(r'[^0-9]'), '') ?? ''; final filtered = txnRes.data!.where((t) { if (currentId != null && t.userId != null && t.userId == currentId) return true; if (currentPhoneClean.length >= 10 && t.mobile != null) { final tMob = t.mobile!.replaceAll(RegExp(r'[^0-9]'), ''); if (tMob.length >= 10 && (tMob.endsWith(currentPhoneClean.substring(currentPhoneClean.length - 10)) || currentPhoneClean.endsWith(tMob.substring(tMob.length - 10)))) return true; } return false; }).toList(); transactions.assignAll(filtered);
       }
 
       viewState.value = transactions.isEmpty ? ViewState.empty : ViewState.success;
