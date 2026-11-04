@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/services/storage_service.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../../app/routes/app_routes.dart';
 import '../../../core/utils/app_snackbar.dart';
@@ -8,10 +9,11 @@ import '../../../core/utils/app_snackbar.dart';
 class RegistrationController extends GetxController {
   final AuthRepository _repo = Get.find<AuthRepository>();
   final AuthService _authService = Get.find<AuthService>();
+  final StorageService _storage = Get.find<StorageService>();
 
   final registerFormKey = GlobalKey<FormState>();
   final nameController = TextEditingController();
-  final emailController = TextEditingController(text: 'rohit.kumar@example.com');
+  final emailController = TextEditingController();
   final referralController = TextEditingController();
   final agreeToTerms = true.obs;
   final isRegistering = false.obs;
@@ -22,7 +24,7 @@ class RegistrationController extends GetxController {
   void onInit() {
     super.onInit();
     final args = Get.arguments;
-    phone = (args is Map && args['phone'] != null) ? args['phone'].toString() : '9876543210';
+    phone = (args is Map && args['phone'] != null) ? args['phone'].toString() : '';
     if (args is Map && args['name'] != null && args['name'].toString().isNotEmpty) {
       nameController.text = args['name'].toString();
     }
@@ -45,6 +47,12 @@ class RegistrationController extends GetxController {
         referralCode: referralController.text.trim(),
       );
       if (res.success && res.data != null) {
+        if (res.data!.token.isNotEmpty) {
+          await _storage.setAuthToken(res.data!.token);
+        }
+        if (res.data!.refreshToken.isNotEmpty) {
+          await _storage.setRefreshToken(res.data!.refreshToken);
+        }
         if (res.data!.user != null) {
           _authService.setUser(res.data!.user!);
         }

@@ -193,26 +193,66 @@ class KycController extends GetxController {
 
   void nextStep() {
     if (currentStep.value == 0) {
-      if (fullNameController.text.trim().isEmpty ||
-          panController.text.trim().length != 10 ||
-          aadhaarController.text.replaceAll(' ', '').length != 12) {
+      final name = fullNameController.text.trim();
+      final pan = panController.text.trim().toUpperCase();
+      final aadhaar = aadhaarController.text.replaceAll(' ', '');
+
+      if (name.isEmpty) {
         Get.snackbar(
-          'Incomplete Details',
-          'Please enter valid PAN (10 chars) and Aadhaar (12 digits)',
-          backgroundColor: AppColors.error.withValues(alpha: 0.1),
+          'Name Required',
+          'Please enter your full name as printed on Aadhaar card',
+          backgroundColor: AppColors.error.withValues(alpha: 0.15),
           colorText: AppColors.error,
           snackPosition: SnackPosition.BOTTOM,
           margin: const EdgeInsets.all(16),
         );
         return;
       }
+
+      final panRegex = RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$');
+      if (!panRegex.hasMatch(pan)) {
+        Get.snackbar(
+          'Sahi PAN Enter Karein',
+          'PAN card number galat hai! 10 characters ka format (e.g. ABCDE1234F) hona chahiye.',
+          backgroundColor: AppColors.error.withValues(alpha: 0.15),
+          colorText: AppColors.error,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+        );
+        return;
+      }
+
+      final aadhaarRegex = RegExp(r'^[0-9]{12}$');
+      if (!aadhaarRegex.hasMatch(aadhaar) || RegExp(r'^(.)\1{11}$').hasMatch(aadhaar)) {
+        Get.snackbar(
+          'Sahi Aadhaar Enter Karein',
+          'Aadhaar number galat hai! 12 anko ka valid number enter karein.',
+          backgroundColor: AppColors.error.withValues(alpha: 0.15),
+          colorText: AppColors.error,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+        );
+        return;
+      }
+
       currentStep.value = 1;
     } else if (currentStep.value == 1) {
-      if (!aadhaarFrontUploaded.value || !panUploaded.value) {
+      if (!aadhaarFrontUploaded.value || aadhaarFrontFile.value == null) {
         Get.snackbar(
-          'Upload Required',
-          'Please attach real photos of Aadhaar Front and PAN card to continue',
-          backgroundColor: AppColors.error.withValues(alpha: 0.1),
+          'Documents Sahi Se Upload Karo',
+          'Aadhaar Front photo attach karein. Clear aur readable honi chahiye.',
+          backgroundColor: AppColors.error.withValues(alpha: 0.15),
+          colorText: AppColors.error,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+        );
+        return;
+      }
+      if (!panUploaded.value || panFile.value == null) {
+        Get.snackbar(
+          'Documents Sahi Se Upload Karo',
+          'PAN Card photo attach karein. Clear aur readable honi chahiye.',
+          backgroundColor: AppColors.error.withValues(alpha: 0.15),
           colorText: AppColors.error,
           snackPosition: SnackPosition.BOTTOM,
           margin: const EdgeInsets.all(16),
@@ -319,6 +359,23 @@ class KycController extends GetxController {
       );
       if (picked != null) {
         final file = File(picked.path);
+        final fileSize = await file.length();
+
+        // Strict Validation: Real documents taken by phone or gallery are >= 20 KB
+        if (fileSize < 20 * 1024) {
+          Get.snackbar(
+            'Documents Sahi Se Upload Karo',
+            'Photo bohot chhoti ya khali file lag rahi hai (${(fileSize / 1024).toStringAsFixed(1)} KB). Kripya original card ki clear aur readable photo upload karein.',
+            backgroundColor: AppColors.error.withValues(alpha: 0.15),
+            colorText: AppColors.error,
+            icon: const Icon(Icons.error_outline_rounded, color: AppColors.error),
+            snackPosition: SnackPosition.BOTTOM,
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
+          );
+          return;
+        }
+
         if (docType == 'aadhaar_front') {
           aadhaarFrontFile.value = file;
           aadhaarFrontUploaded.value = true;
@@ -332,7 +389,7 @@ class KycController extends GetxController {
 
         Get.snackbar(
           'Document Attached',
-          'Successfully loaded real photo: ${picked.name}',
+          'Successfully loaded real photo: ${picked.name} (${(fileSize / 1024).toStringAsFixed(1)} KB)',
           backgroundColor: AppColors.success.withValues(alpha: 0.15),
           colorText: AppColors.success,
           icon: const Icon(Icons.check_circle_rounded, color: AppColors.success),
@@ -437,7 +494,23 @@ class KycController extends GetxController {
         maxHeight: 1080,
       );
       if (photo != null) {
-        selfieFile.value = File(photo.path);
+        final file = File(photo.path);
+        final fileSize = await file.length();
+
+        if (fileSize < 15 * 1024) {
+          Get.snackbar(
+            'Selfie Sahi Se Capture Karein',
+            'Selfie photo bohot dhundhli ya corrupt lag rahi hai. Kripya roshni me saaf live selfie capture karein.',
+            backgroundColor: AppColors.error.withValues(alpha: 0.15),
+            colorText: AppColors.error,
+            icon: const Icon(Icons.error_outline_rounded, color: AppColors.error),
+            snackPosition: SnackPosition.BOTTOM,
+            margin: const EdgeInsets.all(16),
+          );
+          return;
+        }
+
+        selfieFile.value = file;
         selfieCaptured.value = true;
         Get.snackbar(
           'Live Selfie Captured',

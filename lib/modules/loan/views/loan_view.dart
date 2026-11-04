@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../data/models/loan_model.dart';
 import 'package:flutter/material.dart';
@@ -789,24 +792,221 @@ class LoanView extends GetView<LoanController> {
   void _showLoanApplicationSheet(BuildContext context) {
     final authService = Get.isRegistered<AuthService>() ? Get.find<AuthService>() : null;
     final user = authService?.currentUser.value;
-    final defaultName = (user != null && user.name.isNotEmpty && user.name != 'User') ? user.name : 'FlamePay Member';
 
-    final nameCtrl = TextEditingController(text: defaultName);
-    final phoneCtrl = TextEditingController(text: (user != null && user.phone.isNotEmpty) ? user.phone : '+91 9876543210');
-    final panCtrl = TextEditingController(text: (user?.pan != null && user!.pan!.isNotEmpty) ? user.pan! : 'RRQPS8997J');
-    final aadhaarCtrl = TextEditingController(text: (user?.aadhaar != null && user!.aadhaar!.isNotEmpty) ? user.aadhaar! : '5678 9012 3456');
-    final accountCtrl = TextEditingController(text: '32823806111');
-    final ifscCtrl = TextEditingController(text: 'HDFC0001234');
-    final companyCtrl = TextEditingController(text: 'Corporate Private Limited');
-    final incomeCtrl = TextEditingController(text: '85000');
+    final nameCtrl = TextEditingController(text: (user != null && user.name.isNotEmpty && user.name != 'User') ? user.name : '');
+    final phoneCtrl = TextEditingController(text: (user != null && user.phone.isNotEmpty) ? user.phone : '');
+    final panCtrl = TextEditingController(text: (user?.pan != null && user!.pan!.isNotEmpty) ? user.pan! : '');
+    final aadhaarCtrl = TextEditingController(text: (user?.aadhaar != null && user!.aadhaar!.isNotEmpty) ? user.aadhaar! : '');
+    final accountCtrl = TextEditingController();
+    final ifscCtrl = TextEditingController();
+    final companyCtrl = TextEditingController();
+    final incomeCtrl = TextEditingController();
     String purpose = 'Personal Expense';
     String employmentType = 'Salaried';
 
     // 4 Mandatory Loan Approval Documents
-    bool panUploaded = true;
-    bool aadhaarUploaded = true;
-    bool salarySlipUploaded = true;
-    bool bankStatementUploaded = true;
+    File? panFile;
+    File? aadhaarFile;
+    File? salarySlipFile;
+    File? bankStatementFile;
+
+    String panSub = 'Upload clear photo or PDF';
+    String aadhaarSub = 'Upload Government ID proof';
+    String salarySlipSub = 'Last 3 months salary slip or ITR';
+    String bankStatementSub = 'Official bank PDF statement';
+
+    bool panUploaded = false;
+    bool aadhaarUploaded = false;
+    bool salarySlipUploaded = false;
+    bool bankStatementUploaded = false;
+
+    Future<void> pickLoanDoc(String docType, StateSetter setSheetState) async {
+      final picker = ImagePicker();
+      Get.bottomSheet(
+        Container(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 44, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              const Text('Upload Document', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.navyText)),
+              const SizedBox(height: 4),
+              const Text('Select real document photo or PDF for loan underwriting', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+              const SizedBox(height: 18),
+              ListTile(
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(color: AppColors.tintBlue, shape: BoxShape.circle),
+                  child: const Icon(Icons.camera_alt_rounded, color: AppColors.primaryBlue),
+                ),
+                title: const Text('Take Photo (Camera)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                subtitle: const Text('Capture clear photo with your phone camera', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                onTap: () async {
+                  Get.back();
+                  try {
+                    final photo = await picker.pickImage(source: ImageSource.camera, imageQuality: 85);
+                    if (photo != null) {
+                      final f = File(photo.path);
+                      final len = await f.length();
+                      if (len < 20 * 1024) {
+                        Get.snackbar(
+                          'Documents Sahi Se Upload Karo',
+                          'Photo bohot chhoti ya khali lag rahi hai (' + (len / 1024).toFixed(1) + ' KB). Kripya original document ki saaf photo upload karein.',
+                          backgroundColor: AppColors.error.withValues(alpha: 0.15),
+                          colorText: AppColors.error,
+                          snackPosition: SnackPosition.BOTTOM,
+                          margin: const EdgeInsets.all(16),
+                        );
+                        return;
+                      }
+                      setSheetState(() {
+                        final sizeKb = (len / 1024).toFixed(1);
+                        final name = photo.name;
+                        if (docType == 'pan') {
+                          panFile = f;
+                          panUploaded = true;
+                          panSub = name + ' (' + sizeKb + ' KB)';
+                        } else if (docType == 'aadhaar') {
+                          aadhaarFile = f;
+                          aadhaarUploaded = true;
+                          aadhaarSub = name + ' (' + sizeKb + ' KB)';
+                        } else if (docType == 'salary') {
+                          salarySlipFile = f;
+                          salarySlipUploaded = true;
+                          salarySlipSub = name + ' (' + sizeKb + ' KB)';
+                        } else if (docType == 'bank') {
+                          bankStatementFile = f;
+                          bankStatementUploaded = true;
+                          bankStatementSub = name + ' (' + sizeKb + ' KB)';
+                        }
+                      });
+                    }
+                  } catch (e) {
+                    Get.snackbar('Notice', 'Could not open camera: ' + e.toString());
+                  }
+                },
+              ),
+              const Divider(height: 16),
+              ListTile(
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(color: AppColors.tintOrange, shape: BoxShape.circle),
+                  child: const Icon(Icons.photo_library_rounded, color: AppColors.accentOrange),
+                ),
+                title: const Text('Choose from Gallery', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                subtitle: const Text('Select clear image from gallery', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                onTap: () async {
+                  Get.back();
+                  try {
+                    final photo = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+                    if (photo != null) {
+                      final f = File(photo.path);
+                      final len = await f.length();
+                      if (len < 20 * 1024) {
+                        Get.snackbar(
+                          'Documents Sahi Se Upload Karo',
+                          'Photo bohot chhoti ya invalid file lag rahi hai (' + (len / 1024).toFixed(1) + ' KB). Kripya original document ki saaf photo upload karein.',
+                          backgroundColor: AppColors.error.withValues(alpha: 0.15),
+                          colorText: AppColors.error,
+                          snackPosition: SnackPosition.BOTTOM,
+                          margin: const EdgeInsets.all(16),
+                        );
+                        return;
+                      }
+                      setSheetState(() {
+                        final sizeKb = (len / 1024).toFixed(1);
+                        final name = photo.name;
+                        if (docType == 'pan') {
+                          panFile = f;
+                          panUploaded = true;
+                          panSub = name + ' (' + sizeKb + ' KB)';
+                        } else if (docType == 'aadhaar') {
+                          aadhaarFile = f;
+                          aadhaarUploaded = true;
+                          aadhaarSub = name + ' (' + sizeKb + ' KB)';
+                        } else if (docType == 'salary') {
+                          salarySlipFile = f;
+                          salarySlipUploaded = true;
+                          salarySlipSub = name + ' (' + sizeKb + ' KB)';
+                        } else if (docType == 'bank') {
+                          bankStatementFile = f;
+                          bankStatementUploaded = true;
+                          bankStatementSub = name + ' (' + sizeKb + ' KB)';
+                        }
+                      });
+                    }
+                  } catch (e) {
+                    Get.snackbar('Notice', 'Could not open gallery: ' + e.toString());
+                  }
+                },
+              ),
+              const Divider(height: 16),
+              ListTile(
+                leading: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(color: Color(0xFFF3E8FF), shape: BoxShape.circle),
+                  child: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFF9333EA)),
+                ),
+                title: const Text('Pick PDF Document', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                subtitle: const Text('Select official PDF file', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                onTap: () async {
+                  Get.back();
+                  try {
+                    final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png']);
+                    if (result != null && result.files.single.path != null) {
+                      final f = File(result.files.single.path!);
+                      final len = await f.length();
+                      if (len < 10 * 1024) {
+                        Get.snackbar(
+                          'Documents Sahi Se Upload Karo',
+                          'PDF file bohot chhoti ya empty lag rahi hai. Kripya valid PDF document upload karein.',
+                          backgroundColor: AppColors.error.withValues(alpha: 0.15),
+                          colorText: AppColors.error,
+                          snackPosition: SnackPosition.BOTTOM,
+                          margin: const EdgeInsets.all(16),
+                        );
+                        return;
+                      }
+                      setSheetState(() {
+                        final sizeKb = (len / 1024).toFixed(1);
+                        final name = result.files.single.name;
+                        if (docType == 'pan') {
+                          panFile = f;
+                          panUploaded = true;
+                          panSub = name + ' (' + sizeKb + ' KB)';
+                        } else if (docType == 'aadhaar') {
+                          aadhaarFile = f;
+                          aadhaarUploaded = true;
+                          aadhaarSub = name + ' (' + sizeKb + ' KB)';
+                        } else if (docType == 'salary') {
+                          salarySlipFile = f;
+                          salarySlipUploaded = true;
+                          salarySlipSub = name + ' (' + sizeKb + ' KB)';
+                        } else if (docType == 'bank') {
+                          bankStatementFile = f;
+                          bankStatementUploaded = true;
+                          bankStatementSub = name + ' (' + sizeKb + ' KB)';
+                        }
+                      });
+                    }
+                  } catch (e) {
+                    Get.snackbar('Notice', 'Could not pick file: ' + e.toString());
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     showModalBottomSheet(
       context: context,
@@ -855,42 +1055,59 @@ class LoanView extends GetView<LoanController> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Sanction: ₹${controller.loanAmount.value.toInt()} • Tenure: ${controller.tenureMonths.value} Months',
+                              'Sanction: ' + formatCurrency(controller.loanAmount.value) + ' • Tenure: ' + controller.tenureMonths.value.toString() + ' Months',
                               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primaryBlue),
                             ),
                           ],
                         ),
                       ),
                       IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
                         icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
-                        onPressed: () => Get.back(),
                       ),
                     ],
                   ),
-                  const Divider(height: 20, color: AppColors.border),
+                  const SizedBox(height: 14),
 
-                  // Section 1: Applicant Profile
-                  const Text('1. APPLICANT DETAILS (AUTHENTICATED USER)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryBlue, letterSpacing: 0.5)),
-                  const SizedBox(height: 10),
+                  // Section 1: Personal Details
+                  const Text('1. APPLICANT DETAILS', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryBlue, letterSpacing: 0.5)),
+                  const SizedBox(height: 8),
+
                   TextField(
                     controller: nameCtrl,
                     decoration: InputDecoration(
                       labelText: 'Full Name (as per PAN)',
-                      prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.primaryBlue),
+                      hintText: 'Enter your full legal name',
+                      prefixIcon: const Icon(Icons.person_rounded, color: AppColors.primaryBlue, size: 20),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
                   ),
                   const SizedBox(height: 10),
+
+                  TextField(
+                    controller: phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: 'Registered Mobile Number',
+                      hintText: 'e.g. 9876543210',
+                      prefixIcon: const Icon(Icons.phone_android_rounded, color: AppColors.primaryBlue, size: 20),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
                   Row(
                     children: [
                       Expanded(
                         child: TextField(
-                          controller: phoneCtrl,
-                          keyboardType: TextInputType.phone,
+                          controller: panCtrl,
+                          textCapitalization: TextCapitalization.characters,
                           decoration: InputDecoration(
-                            labelText: 'Mobile Number',
-                            prefixIcon: const Icon(Icons.phone_iphone_rounded, color: AppColors.primaryBlue),
+                            labelText: 'PAN Card Number',
+                            hintText: 'e.g. ABCDE1234F',
+                            prefixIcon: const Icon(Icons.badge_rounded, color: AppColors.primaryBlue, size: 20),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
@@ -899,13 +1116,12 @@ class LoanView extends GetView<LoanController> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
-                          controller: panCtrl,
-                          textCapitalization: TextCapitalization.characters,
-                          maxLength: 10,
+                          controller: aadhaarCtrl,
+                          keyboardType: TextInputType.number,
                           decoration: InputDecoration(
-                            counterText: '',
-                            labelText: 'PAN Card No.',
-                            prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.primaryBlue),
+                            labelText: 'Aadhaar Number',
+                            hintText: '12 Digits',
+                            prefixIcon: const Icon(Icons.fingerprint_rounded, color: AppColors.primaryBlue, size: 20),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
@@ -913,22 +1129,12 @@ class LoanView extends GetView<LoanController> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: aadhaarCtrl,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Aadhaar Card No. (12 Digits)',
-                      prefixIcon: const Icon(Icons.credit_card_rounded, color: AppColors.primaryBlue),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
 
-                  // Section 2: Bank & Income Details
-                  const Text('2. BANK ACCOUNT & INCOME', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryBlue, letterSpacing: 0.5)),
-                  const SizedBox(height: 10),
+                  // Section 2: Banking & Employment
+                  const Text('2. DISBURSAL BANK & EMPLOYMENT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryBlue, letterSpacing: 0.5)),
+                  const SizedBox(height: 8),
+
                   Row(
                     children: [
                       Expanded(
@@ -937,8 +1143,9 @@ class LoanView extends GetView<LoanController> {
                           controller: accountCtrl,
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
-                            labelText: 'Disbursal Bank A/C No',
-                            prefixIcon: const Icon(Icons.account_balance_outlined, color: AppColors.primaryBlue),
+                            labelText: 'Disbursal Bank A/C Number',
+                            hintText: 'Enter bank account',
+                            prefixIcon: const Icon(Icons.account_balance_rounded, color: AppColors.primaryBlue, size: 20),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
@@ -951,7 +1158,8 @@ class LoanView extends GetView<LoanController> {
                           controller: ifscCtrl,
                           textCapitalization: TextCapitalization.characters,
                           decoration: InputDecoration(
-                            labelText: 'IFSC Code',
+                            labelText: 'Bank IFSC Code',
+                            hintText: 'e.g. SBIN0001234',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
@@ -960,17 +1168,18 @@ class LoanView extends GetView<LoanController> {
                     ],
                   ),
                   const SizedBox(height: 10),
+
                   Row(
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           value: employmentType,
                           decoration: InputDecoration(
-                            labelText: 'Employment',
+                            labelText: 'Employment Type',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
-                          items: ['Salaried', 'Self Employed', 'Business']
+                          items: ['Salaried', 'Self-Employed', 'Business Owner', 'Professional']
                               .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13))))
                               .toList(),
                           onChanged: (v) => setSheetState(() => employmentType = v ?? 'Salaried'),
@@ -982,7 +1191,9 @@ class LoanView extends GetView<LoanController> {
                           controller: incomeCtrl,
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
-                            labelText: 'Monthly Income (₹)',
+                            labelText: 'Monthly In-Hand Income',
+                            hintText: 'e.g. 50000',
+                            prefixIcon: const Icon(Icons.currency_rupee_rounded, color: AppColors.primaryBlue, size: 18),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           ),
@@ -991,16 +1202,19 @@ class LoanView extends GetView<LoanController> {
                     ],
                   ),
                   const SizedBox(height: 10),
+
                   TextField(
                     controller: companyCtrl,
                     decoration: InputDecoration(
                       labelText: 'Company / Business Name',
-                      prefixIcon: const Icon(Icons.business_rounded, color: AppColors.primaryBlue),
+                      hintText: 'Enter employer or business',
+                      prefixIcon: const Icon(Icons.business_rounded, color: AppColors.primaryBlue, size: 20),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
                   ),
                   const SizedBox(height: 10),
+
                   DropdownButtonFormField<String>(
                     value: purpose,
                     decoration: InputDecoration(
@@ -1035,40 +1249,40 @@ class LoanView extends GetView<LoanController> {
                   // Doc 1: PAN Card
                   _buildDocUploadCard(
                     title: 'PAN Card Document',
-                    subtitle: panUploaded ? 'PAN_${panCtrl.text.trim().toUpperCase()}.pdf (1.4 MB)' : 'Upload clear photo or PDF',
+                    subtitle: panSub,
                     icon: Icons.badge_rounded,
                     isUploaded: panUploaded,
-                    onTap: () => setSheetState(() => panUploaded = !panUploaded),
+                    onTap: () => pickLoanDoc('pan', setSheetState),
                   ),
                   const SizedBox(height: 8),
 
                   // Doc 2: Aadhaar Card
                   _buildDocUploadCard(
                     title: 'Aadhaar Card (Front & Back)',
-                    subtitle: aadhaarUploaded ? 'AADHAAR_DOCUMENT_VERIFIED.pdf (2.1 MB)' : 'Upload Government ID proof',
+                    subtitle: aadhaarSub,
                     icon: Icons.credit_card_rounded,
                     isUploaded: aadhaarUploaded,
-                    onTap: () => setSheetState(() => aadhaarUploaded = !aadhaarUploaded),
+                    onTap: () => pickLoanDoc('aadhaar', setSheetState),
                   ),
                   const SizedBox(height: 8),
 
                   // Doc 3: Salary Slip
                   _buildDocUploadCard(
                     title: 'Salary Slip / Income Proof',
-                    subtitle: salarySlipUploaded ? 'Salary_Slip_Last_3Months.pdf (1.8 MB)' : 'Last 3 months salary slip or ITR',
+                    subtitle: salarySlipSub,
                     icon: Icons.receipt_long_rounded,
                     isUploaded: salarySlipUploaded,
-                    onTap: () => setSheetState(() => salarySlipUploaded = !salarySlipUploaded),
+                    onTap: () => pickLoanDoc('salary', setSheetState),
                   ),
                   const SizedBox(height: 8),
 
                   // Doc 4: Bank Statement
                   _buildDocUploadCard(
                     title: 'Bank Statement (Last 6 Months)',
-                    subtitle: bankStatementUploaded ? 'Bank_Statement_6Months.pdf (3.2 MB)' : 'Official bank PDF statement',
+                    subtitle: bankStatementSub,
                     icon: Icons.account_balance_rounded,
                     isUploaded: bankStatementUploaded,
-                    onTap: () => setSheetState(() => bankStatementUploaded = !bankStatementUploaded),
+                    onTap: () => pickLoanDoc('bank', setSheetState),
                   ),
                   const SizedBox(height: 20),
 
@@ -1078,36 +1292,53 @@ class LoanView extends GetView<LoanController> {
                         isLoading: controller.isSubmitting.value,
                         type: ButtonType.orangePrimary,
                         onPressed: () {
-                          if (panCtrl.text.trim().length != 10) {
-                            Get.snackbar('Validation', 'Please enter a valid 10-character PAN Card number', backgroundColor: Colors.orange.shade100);
+                          final pan = panCtrl.text.trim().toUpperCase();
+                          final aadhaar = aadhaarCtrl.text.replaceAll(' ', '');
+                          final account = accountCtrl.text.trim();
+
+                          if (nameCtrl.text.trim().isEmpty) {
+                            Get.snackbar('Validation', 'Please enter your Full Name', backgroundColor: Colors.orange.shade100);
                             return;
                           }
-                          if (accountCtrl.text.trim().length < 9) {
+                          final panRegex = RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$');
+                          if (!panRegex.hasMatch(pan)) {
+                            Get.snackbar('Validation', 'Please enter a valid 10-character PAN Card number (e.g. ABCDE1234F)', backgroundColor: Colors.orange.shade100);
+                            return;
+                          }
+                          if (aadhaar.length != 12 || !RegExp(r'^[0-9]{12}$').hasMatch(aadhaar)) {
+                            Get.snackbar('Validation', 'Please enter a valid 12-digit Aadhaar number', backgroundColor: Colors.orange.shade100);
+                            return;
+                          }
+                          if (account.length < 8) {
                             Get.snackbar('Validation', 'Please enter a valid Bank Account Number', backgroundColor: Colors.orange.shade100);
                             return;
                           }
                           if (!panUploaded || !aadhaarUploaded || !salarySlipUploaded || !bankStatementUploaded) {
-                            Get.snackbar('Documents Missing', 'All 4 mandatory documents must be attached for instant approval.', backgroundColor: Colors.orange.shade100);
+                            Get.snackbar(
+                              'Documents Sahi Se Upload Karo',
+                              'Sabhi 4 zaroori documents (PAN, Aadhaar, Salary Slip, Bank Statement) attach karna anivarya hai.',
+                              backgroundColor: Colors.orange.shade100,
+                            );
                             return;
                           }
 
                           controller.applyForLoan(
                             purpose: purpose,
-                            pan: panCtrl.text.trim().toUpperCase(),
-                            bankAccount: accountCtrl.text.trim(),
+                            pan: pan,
+                            bankAccount: account,
                             ifsc: ifscCtrl.text.trim().toUpperCase(),
                             employmentType: employmentType,
-                            monthlyIncome: double.tryParse(incomeCtrl.text.trim()) ?? 85000.0,
+                            monthlyIncome: double.tryParse(incomeCtrl.text.trim()) ?? 50000.0,
                             companyName: companyCtrl.text.trim(),
-                            aadhaar: aadhaarCtrl.text.trim(),
+                            aadhaar: aadhaar,
                             userName: nameCtrl.text.trim(),
                             userPhone: phoneCtrl.text.trim(),
                             userEmail: user?.email,
                             documents: {
-                              'panCard': {'name': 'PAN_${panCtrl.text.trim().toUpperCase()}.pdf', 'status': 'verified', 'size': '1.4 MB'},
-                              'aadhaarCard': {'name': 'AADHAAR_DOCUMENT_FRONT_BACK.pdf', 'status': 'verified', 'size': '2.1 MB'},
-                              'salarySlip': {'name': 'Salary_Slip_Last_3Months.pdf', 'status': 'verified', 'size': '1.8 MB'},
-                              'bankStatement': {'name': 'Bank_Statement_Last_6Months.pdf', 'status': 'verified', 'size': '3.2 MB'},
+                              'panCard': {'name': panFile != null ? panFile!.path.split(Platform.pathSeparator).last : 'PAN_' + pan + '.pdf', 'status': 'submitted', 'size': panSub},
+                              'aadhaarCard': {'name': aadhaarFile != null ? aadhaarFile!.path.split(Platform.pathSeparator).last : 'AADHAAR_FRONT_BACK.pdf', 'status': 'submitted', 'size': aadhaarSub},
+                              'salarySlip': {'name': salarySlipFile != null ? salarySlipFile!.path.split(Platform.pathSeparator).last : 'Salary_Slip.pdf', 'status': 'submitted', 'size': salarySlipSub},
+                              'bankStatement': {'name': bankStatementFile != null ? bankStatementFile!.path.split(Platform.pathSeparator).last : 'Bank_Statement.pdf', 'status': 'submitted', 'size': bankStatementSub},
                             },
                           );
                         },
@@ -1121,7 +1352,7 @@ class LoanView extends GetView<LoanController> {
     );
   }
 
-  Widget _buildDocUploadCard({
+    Widget _buildDocUploadCard({
     required String title,
     required String subtitle,
     required IconData icon,

@@ -19,6 +19,28 @@ class MpinSetupController extends GetxController {
   final enableBiometric = true.obs;
   final isSettingMpin = false.obs;
 
+  bool isFromRegistration = false;
+
+  @override
+  void onInit() {
+    super.onInit();
+    final args = Get.arguments;
+    if (args is Map && args['fromRegistration'] == true) {
+      isFromRegistration = true;
+    }
+  }
+
+  void _navigateNext() {
+    final user = _authService.currentUser.value;
+    final needsKyc = isFromRegistration || (user == null || user.kycStatus != 'verified');
+
+    if (needsKyc) {
+      Get.offAllNamed(AppRoutes.kyc, arguments: {'fromOnboarding': true, 'isMandatory': true});
+    } else {
+      Get.offAllNamed(AppRoutes.home);
+    }
+  }
+
   Future<void> setMpin() async {
     final mpin = mpinController.text.trim();
     final confirm = confirmMpinController.text.trim();
@@ -45,7 +67,7 @@ class MpinSetupController extends GetxController {
       _authService.hasMpin.value = true;
       _authService.isAuthenticated.value = true;
       AppSnackbar.showSuccess('MPIN created successfully');
-      Get.offAllNamed(AppRoutes.home);
+      _navigateNext();
     } catch (e) {
       AppSnackbar.showError(e, title: 'API Error');
     } finally {
@@ -55,7 +77,7 @@ class MpinSetupController extends GetxController {
 
   void skipMpin() {
     _authService.isAuthenticated.value = true;
-    Get.offAllNamed(AppRoutes.home);
+    _navigateNext();
   }
 
   @override
