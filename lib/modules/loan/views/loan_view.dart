@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../data/models/loan_model.dart';
@@ -857,7 +856,7 @@ class LoanView extends GetView<LoanController> {
                       if (len < 20 * 1024) {
                         Get.snackbar(
                           'Documents Sahi Se Upload Karo',
-                          'Photo bohot chhoti ya khali lag rahi hai (' + (len / 1024).toFixed(1) + ' KB). Kripya original document ki saaf photo upload karein.',
+                          'Photo bohot chhoti ya khali lag rahi hai (' + (len / 1024).toStringAsFixed(1) + ' KB). Kripya original document ki saaf photo upload karein.',
                           backgroundColor: AppColors.error.withValues(alpha: 0.15),
                           colorText: AppColors.error,
                           snackPosition: SnackPosition.BOTTOM,
@@ -866,7 +865,7 @@ class LoanView extends GetView<LoanController> {
                         return;
                       }
                       setSheetState(() {
-                        final sizeKb = (len / 1024).toFixed(1);
+                        final sizeKb = (len / 1024).toStringAsFixed(1);
                         final name = photo.name;
                         if (docType == 'pan') {
                           panFile = f;
@@ -912,7 +911,7 @@ class LoanView extends GetView<LoanController> {
                       if (len < 20 * 1024) {
                         Get.snackbar(
                           'Documents Sahi Se Upload Karo',
-                          'Photo bohot chhoti ya invalid file lag rahi hai (' + (len / 1024).toFixed(1) + ' KB). Kripya original document ki saaf photo upload karein.',
+                          'Photo bohot chhoti ya invalid file lag rahi hai (' + (len / 1024).toStringAsFixed(1) + ' KB). Kripya original document ki saaf photo upload karein.',
                           backgroundColor: AppColors.error.withValues(alpha: 0.15),
                           colorText: AppColors.error,
                           snackPosition: SnackPosition.BOTTOM,
@@ -921,7 +920,7 @@ class LoanView extends GetView<LoanController> {
                         return;
                       }
                       setSheetState(() {
-                        final sizeKb = (len / 1024).toFixed(1);
+                        final sizeKb = (len / 1024).toStringAsFixed(1);
                         final name = photo.name;
                         if (docType == 'pan') {
                           panFile = f;
@@ -947,61 +946,7 @@ class LoanView extends GetView<LoanController> {
                   }
                 },
               ),
-              const Divider(height: 16),
-              ListTile(
-                leading: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: const BoxDecoration(color: Color(0xFFF3E8FF), shape: BoxShape.circle),
-                  child: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFF9333EA)),
-                ),
-                title: const Text('Pick PDF Document', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                subtitle: const Text('Select official PDF file', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                onTap: () async {
-                  Get.back();
-                  try {
-                    final result = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png']);
-                    if (result != null && result.files.single.path != null) {
-                      final f = File(result.files.single.path!);
-                      final len = await f.length();
-                      if (len < 10 * 1024) {
-                        Get.snackbar(
-                          'Documents Sahi Se Upload Karo',
-                          'PDF file bohot chhoti ya empty lag rahi hai. Kripya valid PDF document upload karein.',
-                          backgroundColor: AppColors.error.withValues(alpha: 0.15),
-                          colorText: AppColors.error,
-                          snackPosition: SnackPosition.BOTTOM,
-                          margin: const EdgeInsets.all(16),
-                        );
-                        return;
-                      }
-                      setSheetState(() {
-                        final sizeKb = (len / 1024).toFixed(1);
-                        final name = result.files.single.name;
-                        if (docType == 'pan') {
-                          panFile = f;
-                          panUploaded = true;
-                          panSub = name + ' (' + sizeKb + ' KB)';
-                        } else if (docType == 'aadhaar') {
-                          aadhaarFile = f;
-                          aadhaarUploaded = true;
-                          aadhaarSub = name + ' (' + sizeKb + ' KB)';
-                        } else if (docType == 'salary') {
-                          salarySlipFile = f;
-                          salarySlipUploaded = true;
-                          salarySlipSub = name + ' (' + sizeKb + ' KB)';
-                        } else if (docType == 'bank') {
-                          bankStatementFile = f;
-                          bankStatementUploaded = true;
-                          bankStatementSub = name + ' (' + sizeKb + ' KB)';
-                        }
-                      });
-                    }
-                  } catch (e) {
-                    Get.snackbar('Notice', 'Could not pick file: ' + e.toString());
-                  }
-                },
-              ),
+              
             ],
           ),
         ),
@@ -1055,7 +1000,7 @@ class LoanView extends GetView<LoanController> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Sanction: ' + formatCurrency(controller.loanAmount.value) + ' • Tenure: ' + controller.tenureMonths.value.toString() + ' Months',
+                              'Sanction: ' + Formatters.formatCurrency(controller.loanAmount.value) + ' • Tenure: ' + controller.tenureMonths.value.toString() + ' Months',
                               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primaryBlue),
                             ),
                           ],
