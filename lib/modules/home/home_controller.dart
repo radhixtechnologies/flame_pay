@@ -86,6 +86,8 @@ class HomeController extends GetxController {
   void onServiceSelected(ServiceItemModel service) {
     if (service.id == 'dth_recharge') {
       Get.toNamed(AppRoutes.recharge, arguments: {'isDth': true});
+    } else if (service.route == AppRoutes.billPayment) {
+      Get.toNamed(service.route, arguments: {'category': service.id});
     } else {
       Get.toNamed(service.route);
     }

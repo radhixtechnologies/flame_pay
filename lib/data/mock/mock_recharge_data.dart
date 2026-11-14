@@ -199,5 +199,80 @@ class MockRechargeData {
     OperatorModel(id: 'hero_fincorp', name: 'Hero FinCorp Limited', type: 'emi'),
     OperatorModel(id: 'muthoot_finance', name: 'Muthoot Finance Loan Repayment', type: 'emi'),
     OperatorModel(id: 'lnt_finance', name: 'L&T Finance Limited', type: 'emi'),
+    OperatorModel(id: 'bajaj_finserv', name: 'Bajaj Finance Limited (EMI)', type: 'loan_emi'),
+    OperatorModel(id: 'hdfc_bank_loan', name: 'HDFC Bank Personal Loan EMI', type: 'loan_emi'),
+    OperatorModel(id: 'idfc_first_loan', name: 'IDFC FIRST Bank Loan EMI', type: 'loan_emi'),
+    OperatorModel(id: 'tata_capital', name: 'Tata Capital Financial Services', type: 'loan_emi'),
+    OperatorModel(id: 'hero_fincorp', name: 'Hero FinCorp Limited', type: 'loan_emi'),
+    OperatorModel(id: 'muthoot_finance', name: 'Muthoot Finance Loan Repayment', type: 'loan_emi'),
+    OperatorModel(id: 'lnt_finance', name: 'L&T Finance Limited', type: 'loan_emi'),
+    OperatorModel(id: 'home_credit', name: 'Home Credit India', type: 'loan_emi'),
+
+    // --- Mobile Postpaid ---
+    OperatorModel(id: 'airtel_postpaid', name: 'Airtel Postpaid', type: 'mobile_postpaid'),
+    OperatorModel(id: 'jio_postpaid', name: 'Reliance Jio Postpaid Plus', type: 'mobile_postpaid'),
+    OperatorModel(id: 'vi_postpaid', name: 'Vodafone Idea (Vi) Postpaid', type: 'mobile_postpaid'),
+    OperatorModel(id: 'bsnl_postpaid', name: 'BSNL Mobile Postpaid', type: 'mobile_postpaid'),
+
+    // --- Insurance Premium ---
+    OperatorModel(id: 'lic_insurance', name: 'Life Insurance Corporation (LIC)', type: 'insurance_premium'),
+    OperatorModel(id: 'hdfc_life', name: 'HDFC Life Insurance', type: 'insurance_premium'),
+    OperatorModel(id: 'icici_pru_life', name: 'ICICI Prudential Life Insurance', type: 'insurance_premium'),
+    OperatorModel(id: 'sbi_life', name: 'SBI Life Insurance', type: 'insurance_premium'),
+    OperatorModel(id: 'max_life', name: 'Max Life Insurance', type: 'insurance_premium'),
+    OperatorModel(id: 'tata_aia_life', name: 'Tata AIA Life Insurance', type: 'insurance_premium'),
+    OperatorModel(id: 'star_health', name: 'Star Health & Allied Insurance', type: 'insurance_premium'),
+
+    // --- Gas Cylinder Booking ---
+    OperatorModel(id: 'indane_gas', name: 'Indane Gas (Indian Oil - IOCL)', type: 'gas_cylinder'),
+    OperatorModel(id: 'bharat_gas', name: 'Bharat Gas (BPCL)', type: 'gas_cylinder'),
+    OperatorModel(id: 'hp_gas', name: 'HP Gas (HPCL)', type: 'gas_cylinder'),
+
+    // --- Subscription ---
+    OperatorModel(id: 'netflix_sub', name: 'Netflix India', type: 'subscription'),
+    OperatorModel(id: 'amazon_prime_sub', name: 'Amazon Prime Video', type: 'subscription'),
+    OperatorModel(id: 'disney_hotstar_sub', name: 'Disney+ Hotstar', type: 'subscription'),
+    OperatorModel(id: 'sonyliv_sub', name: 'SonyLIV Premium', type: 'subscription'),
+    OperatorModel(id: 'zee5_sub', name: 'Zee5 Premium', type: 'subscription'),
+    OperatorModel(id: 'spotify_sub', name: 'Spotify Premium', type: 'subscription'),
+    OperatorModel(id: 'youtube_premium_sub', name: 'YouTube Premium Family', type: 'subscription'),
+
+    // --- Rental ---
+    OperatorModel(id: 'house_rent', name: 'House Rent Payment', type: 'rental'),
+    OperatorModel(id: 'society_maintenance', name: 'Apartment Society Maintenance Dues', type: 'rental'),
+    OperatorModel(id: 'commercial_rent', name: 'Commercial Office / Shop Rent', type: 'rental'),
+    OperatorModel(id: 'pg_coliving_rent', name: 'Co-living & PG Monthly Rent', type: 'rental'),
+
+    // --- Municipal Tax ---
+    OperatorModel(id: 'mcd_delhi', name: 'Municipal Corporation of Delhi (MCD Property Tax)', type: 'municipal_tax'),
+    OperatorModel(id: 'bmc_mumbai', name: 'Brihanmumbai Municipal Corporation (BMC Property Tax)', type: 'municipal_tax'),
+    OperatorModel(id: 'bbmp_bengaluru', name: 'BBMP Property Tax Bengaluru', type: 'municipal_tax'),
+    OperatorModel(id: 'ghmc_hyderabad', name: 'GHMC Property Tax Hyderabad', type: 'municipal_tax'),
+    OperatorModel(id: 'gcc_chennai', name: 'Greater Chennai Corporation Property Tax', type: 'municipal_tax'),
+    OperatorModel(id: 'pmc_pune', name: 'Pune Municipal Corporation (PMC Tax)', type: 'municipal_tax'),
+
+    // --- Education ---
+    OperatorModel(id: 'dps_school', name: 'Delhi Public School (DPS) Term Fees', type: 'education'),
+    OperatorModel(id: 'kv_school', name: 'Kendriya Vidyalaya (KV) Quarterly Fees', type: 'education'),
+    OperatorModel(id: 'amity_university', name: 'Amity University Semester Fees', type: 'education'),
+    OperatorModel(id: 'allen_institute', name: 'Allen Career Institute Coaching Fees', type: 'education'),
+    OperatorModel(id: 'aakash_institute', name: 'Aakash Institute Tuition Fees', type: 'education'),
+    OperatorModel(id: 'fiitjee', name: 'FIITJEE Coaching Program Fees', type: 'education'),
+
+    // --- Hospital ---
+    OperatorModel(id: 'apollo_hospitals', name: 'Apollo Hospitals Medical & Consultation', type: 'hospital'),
+    OperatorModel(id: 'fortis_healthcare', name: 'Fortis Healthcare', type: 'hospital'),
+    OperatorModel(id: 'max_healthcare', name: 'Max Healthcare Hospitals', type: 'hospital'),
+    OperatorModel(id: 'manipal_hospitals', name: 'Manipal Hospitals', type: 'hospital'),
+    OperatorModel(id: 'medanta_medicity', name: 'Medanta - The Medicity', type: 'hospital'),
+    OperatorModel(id: 'narayana_health', name: 'Narayana Health', type: 'hospital'),
+
+    // --- Cable TV ---
+    OperatorModel(id: 'hathway_cable', name: 'Hathway Digital Cable TV', type: 'cable_tv'),
+    OperatorModel(id: 'den_networks', name: 'DEN Networks Cable', type: 'cable_tv'),
+    OperatorModel(id: 'gtpl_hathway', name: 'GTPL Hathway Cable TV', type: 'cable_tv'),
+    OperatorModel(id: 'siti_networks', name: 'Siti Cable Networks', type: 'cable_tv'),
+    OperatorModel(id: 'asianet_cable', name: 'Asianet Digital Cable TV', type: 'cable_tv'),
+    OperatorModel(id: 'fastway_cable', name: 'Fastway Transmissions', type: 'cable_tv'),
   ];
 }

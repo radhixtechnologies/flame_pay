@@ -286,6 +286,111 @@ class CibilView extends GetView<CibilController> {
                 const SizedBox(height: 18),
 
                 // Consent Checkbox
+                const SizedBox(height: 16),
+                const Text(
+                  'Gender (for CIBIL Record)',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.navyText,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Obx(() => Row(
+                      children: [
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => controller.selectedGender.value = 'male',
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: controller.selectedGender.value == 'male'
+                                    ? AppColors.primaryBlue.withOpacity(0.08)
+                                    : AppColors.background,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: controller.selectedGender.value == 'male'
+                                      ? AppColors.primaryBlue
+                                      : AppColors.border,
+                                  width: controller.selectedGender.value == 'male' ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.male_rounded,
+                                    size: 18,
+                                    color: controller.selectedGender.value == 'male'
+                                        ? AppColors.primaryBlue
+                                        : AppColors.textSecondary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Male',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: controller.selectedGender.value == 'male'
+                                          ? AppColors.primaryBlue
+                                          : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: InkWell(
+                            onTap: () => controller.selectedGender.value = 'female',
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: controller.selectedGender.value == 'female'
+                                    ? AppColors.primaryBlue.withOpacity(0.08)
+                                    : AppColors.background,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: controller.selectedGender.value == 'female'
+                                      ? AppColors.primaryBlue
+                                      : AppColors.border,
+                                  width: controller.selectedGender.value == 'female' ? 1.5 : 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.female_rounded,
+                                    size: 18,
+                                    color: controller.selectedGender.value == 'female'
+                                        ? AppColors.primaryBlue
+                                        : AppColors.textSecondary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Female',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                      color: controller.selectedGender.value == 'female'
+                                          ? AppColors.primaryBlue
+                                          : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )),
+                const SizedBox(height: 18),
+                // Consent Checkbox
                 Obx(() => Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

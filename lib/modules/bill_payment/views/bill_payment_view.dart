@@ -61,7 +61,7 @@ class BillPaymentView extends GetView<BillPaymentController> {
             const SizedBox(height: 20),
 
             // Select Biller
-            Text('Select Electricity Board / Biller', style: AppTypography.caption.copyWith(fontWeight: FontWeight.bold)),
+            Obx(() => Text(controller.billerSelectorTitle, style: AppTypography.caption.copyWith(fontWeight: FontWeight.bold))),
             const SizedBox(height: 8),
             Obx(() => InkWell(
                   onTap: () {
@@ -69,7 +69,7 @@ class BillPaymentView extends GetView<BillPaymentController> {
                       context: context,
                       operators: controller.billersForCategory,
                       selectedOperator: controller.selectedBiller.value,
-                      title: 'Select Biller',
+                      title: controller.billerSelectorTitle,
                     ).then((op) {
                       if (op != null) {
                         controller.selectedBiller.value = op;
@@ -106,7 +106,7 @@ class BillPaymentView extends GetView<BillPaymentController> {
             const SizedBox(height: 18),
 
             // Consumer Number Field
-            Text('Consumer Number / CA Number', style: AppTypography.caption.copyWith(fontWeight: FontWeight.bold)),
+            Obx(() => Text(controller.consumerFieldLabel, style: AppTypography.caption.copyWith(fontWeight: FontWeight.bold))),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -119,14 +119,16 @@ class BillPaymentView extends GetView<BillPaymentController> {
               child: Row(
                 children: [
                   Expanded(
-                    child: TextField(
-                      controller: controller.consumerNumberController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        hintText: 'Enter 10-digit Consumer Number',
-                        border: InputBorder.none,
-                      ),
-                    ),
+                    child: Obx(() => TextField(
+                          controller: controller.consumerNumberController,
+                          keyboardType: (controller.selectedCategory.value == 'mobile_postpaid' || controller.selectedCategory.value == 'gas_cylinder')
+                              ? TextInputType.phone
+                              : TextInputType.text,
+                          decoration: InputDecoration(
+                            hintText: controller.consumerFieldHint,
+                            border: InputBorder.none,
+                          ),
+                        )),
                   ),
                   TextButton(
                     onPressed: controller.fetchBill,

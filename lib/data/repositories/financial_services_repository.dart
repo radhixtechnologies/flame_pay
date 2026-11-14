@@ -33,6 +33,7 @@ class FinancialServicesRepository {
     required String fullName,
     String? dob,
     String? mobile,
+    String? gender,
   }) async {
     final cleanPan = pan.trim().toUpperCase();
 
@@ -58,6 +59,7 @@ class FinancialServicesRepository {
           'fullName': fullName.trim(),
           'dob': dob?.trim(),
           'mobile': mobile?.trim(),
+          'gender': gender?.trim() ?? 'male',
         },
         fromJson: (json) => CibilScoreModel.fromJson(json as Map<String, dynamic>),
       );

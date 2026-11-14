@@ -18,6 +18,7 @@ class CibilController extends GetxController {
   final RxBool hasCheckedScore = false.obs;
   final RxBool isChecking = false.obs;
   final RxBool agreedToConsent = true.obs;
+  final RxString selectedGender = 'male'.obs;
   final RxString currentPan = ''.obs;
 
   @override
@@ -112,6 +113,7 @@ class CibilController extends GetxController {
         pan: pan,
         fullName: name,
         dob: dobController.text.trim(),
+        gender: selectedGender.value,
       );
 
       if (res.success && res.data != null) {

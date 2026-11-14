@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../app/routes/app_routes.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/responsive/responsive_helper.dart';
@@ -75,7 +76,15 @@ class AllServicesView extends GetView<AllServicesController> {
                 ServiceGrid(
                   services: controller.rechargeAndBills,
                   crossAxisCount: columns,
-                  onServiceTap: (s) => Get.toNamed(s.route),
+                  onServiceTap: (s) {
+                    if (s.id == 'dth_recharge') {
+                      Get.toNamed(AppRoutes.recharge, arguments: {'isDth': true});
+                    } else if (s.route == AppRoutes.billPayment) {
+                      Get.toNamed(s.route, arguments: {'category': s.id});
+                    } else {
+                      Get.toNamed(s.route);
+                    }
+                  },
                 ),
                 const SizedBox(height: 20),
               ],
