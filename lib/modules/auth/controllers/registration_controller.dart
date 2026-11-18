@@ -66,12 +66,5 @@ class RegistrationController extends GetxController {
       isRegistering.value = false;
     }
   }
-
-  @override
-  void onClose() {
-    nameController.dispose();
-    emailController.dispose();
-    referralController.dispose();
-    super.onClose();
-  }
 }
+

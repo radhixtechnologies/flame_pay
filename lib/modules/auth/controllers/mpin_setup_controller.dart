@@ -79,11 +79,4 @@ class MpinSetupController extends GetxController {
     _authService.isAuthenticated.value = true;
     _navigateNext();
   }
-
-  @override
-  void onClose() {
-    mpinController.dispose();
-    confirmMpinController.dispose();
-    super.onClose();
-  }
 }

@@ -22,6 +22,9 @@ class ApiEndpoints {
   static const String rechargeOperators = '/recharge/operators';
   static const String rechargePay = '/recharge/pay';
   static const String rechargeOperatorCheck = '/recharge/operator-check';
+  static const String dthOperatorCheck = '/dth/operator-check';
+  static const String dthInfo = '/dth/info';
+  static const String dthPlans = '/dth/plans';
 
   static const String billCategories = '/bills/categories';
   static const String billers = '/bills/billers';
@@ -37,6 +40,12 @@ class ApiEndpoints {
   static const String cibilReport = '/cibil/report';
   static const String cibilFactors = '/cibil/factors';
   static const String cibilCheck = '/cibil/check';
+  static const String panVerify = '/pan/verify';
+  static const String aadhaarVerify = '/aadhaar/verify';
+  static const String aadhaarPanLink = '/aadhaar/pan-link';
+  static const String bankVerify = '/bank/verify';
+  static const String upiVerify = '/upi/verify';
+  static const String userMyQr = '/user/my-qr';
 
   static const String creditCardCategories = '/credit-cards/categories';
   static const String creditCardsList = '/credit-cards/list';

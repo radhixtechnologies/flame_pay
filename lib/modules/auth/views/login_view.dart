@@ -117,6 +117,27 @@ class LoginView extends GetView<LoginController> {
                         onPressed: controller.sendOtp,
                       )),
 
+                  // Biometric 1-Tap Unlock (if enabled)
+                  Obx(() {
+                    if (!controller.canBiometricLogin.value) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 12.0),
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 48),
+                          side: const BorderSide(color: AppColors.primaryBlue),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                        icon: const Icon(Icons.fingerprint_rounded, color: AppColors.primaryBlue, size: 22),
+                        label: const Text(
+                          'Quick Unlock with Biometrics',
+                          style: TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold, fontSize: 13.5),
+                        ),
+                        onPressed: controller.loginWithBiometrics,
+                      ),
+                    );
+                  }),
+
                   const SizedBox(height: 28),
 
                   // OR Divider

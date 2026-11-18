@@ -1,6 +1,7 @@
 import 'dart:io';
 import '../../../app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
@@ -76,11 +77,19 @@ class KycView extends GetView<KycController> {
                 Container(
                   width: 76,
                   height: 76,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFECFDF3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF3),
                     shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.success, width: 2),
                   ),
-                  child: const Icon(Icons.verified_user_rounded, color: AppColors.success, size: 44),
+                  clipBehavior: Clip.antiAlias,
+                  child: (user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty)
+                      ? (user.avatarUrl!.startsWith('http')
+                          ? Image.network(user.avatarUrl!, fit: BoxFit.cover)
+                          : (File(user.avatarUrl!).existsSync()
+                              ? Image.file(File(user.avatarUrl!), fit: BoxFit.cover)
+                              : const Icon(Icons.verified_user_rounded, color: AppColors.success, size: 44)))
+                      : const Icon(Icons.verified_user_rounded, color: AppColors.success, size: 44),
                 ),
                 const SizedBox(height: 16),
                 Text('Full KYC Verified', style: AppTypography.h2),
@@ -222,49 +231,92 @@ class KycView extends GetView<KycController> {
           Text('Information must strictly match your official government IDs', style: AppTypography.caption),
           const SizedBox(height: 14),
 
-          // Fast-track Aadhaar QR scan banner
-          InkWell(
-            onTap: controller.openAadhaarQrScanner,
-            borderRadius: BorderRadius.circular(14),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.primaryBlue.withValues(alpha: 0.08),
-                    AppColors.accentOrange.withValues(alpha: 0.12),
+          // Fast-track Aadhaar QR scan & Photo banner
+          Obx(() {
+            final isAttached = controller.aadhaarFrontUploaded.value && controller.aadhaarFrontFile.value != null;
+            final cardFile = controller.aadhaarFrontFile.value;
+
+            return InkWell(
+              onTap: controller.openAadhaarQrScanner,
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isAttached ? const Color(0xFFF0FDF4) : null,
+                  gradient: isAttached
+                      ? null
+                      : LinearGradient(
+                          colors: [
+                            AppColors.primaryBlue.withValues(alpha: 0.08),
+                            AppColors.accentOrange.withValues(alpha: 0.12),
+                          ],
+                        ),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isAttached ? AppColors.success : AppColors.primaryBlue.withValues(alpha: 0.3),
+                    width: isAttached ? 1.5 : 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: isAttached ? const Color(0xFFDCFCE7) : AppColors.primaryBlue,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: (isAttached && cardFile != null && cardFile.existsSync())
+                          ? Image.file(cardFile, fit: BoxFit.cover)
+                          : Icon(
+                              isAttached ? Icons.verified_rounded : Icons.qr_code_scanner_rounded,
+                              color: isAttached ? AppColors.success : Colors.white,
+                              size: 24,
+                            ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                isAttached ? 'Aadhaar Card Attached & Verified' : 'Scan Aadhaar QR Code / Card',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: isAttached ? AppColors.success : AppColors.navyText,
+                                ),
+                              ),
+                              if (isAttached) ...[
+                                const SizedBox(width: 4),
+                                const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 14),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            isAttached ? 'Tap to change photo or re-scan' : 'Instantly decode & autofill your details',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isAttached ? AppColors.success.withValues(alpha: 0.8) : AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      isAttached ? Icons.refresh_rounded : Icons.arrow_forward_ios_rounded,
+                      size: 14,
+                      color: isAttached ? AppColors.success : AppColors.primaryBlue,
+                    ),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.3)),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBlue,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 24),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Scan Aadhaar QR Code', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.navyText)),
-                        SizedBox(height: 2),
-                        Text('Instantly decode & autofill your details', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.primaryBlue),
-                ],
-              ),
-            ),
-          ),
+            );
+          }),
 
           const SizedBox(height: 16),
           AppTextField(
@@ -273,18 +325,134 @@ class KycView extends GetView<KycController> {
             prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.primaryBlue, size: 20),
           ),
           const SizedBox(height: 14),
-          AppTextField(
-            label: 'PAN Card Number (10 Alphanumeric)',
-            controller: controller.panController,
-            prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.primaryBlue, size: 20),
-          ),
+          Obx(() {
+            final panOk = controller.isPanVerified.value;
+            final panLoading = controller.isVerifyingPan.value;
+            final panData = controller.panVerifiedData.value;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppTextField(
+                  label: 'PAN Card Number (10 Alphanumeric)',
+                  controller: controller.panController,
+                  hint: 'e.g. ABCDE1234F',
+                  textCapitalization: TextCapitalization.characters,
+                  maxLength: 10,
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(10),
+                    FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9]')),
+                    TextInputFormatter.withFunction(
+                      (oldValue, newValue) => newValue.copyWith(text: newValue.text.toUpperCase()),
+                    ),
+                  ],
+                  prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.primaryBlue, size: 20),
+                  suffixIcon: Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: panLoading
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                          )
+                        : panOk
+                            ? const Icon(Icons.verified_rounded, color: AppColors.success, size: 22)
+                            : TextButton(
+                                onPressed: controller.verifyPanWithWay2Api,
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.primaryBlue,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                ),
+                                child: const Text('Verify', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                              ),
+                  ),
+                ),
+                if (panOk && panData != null)
+                  Container(
+                    margin: const EdgeInsets.only(top: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.verified_rounded, color: AppColors.success, size: 15),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'NSDL Verified: ${panData['fullName'] ?? panData['name'] ?? ''} • ${panData['status'] ?? 'VALID'}',
+                            style: const TextStyle(fontSize: 11, color: AppColors.success, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            );
+          }),
           const SizedBox(height: 14),
-          AppTextField(
-            label: 'Aadhaar Number (12 Digits)',
-            controller: controller.aadhaarController,
-            keyboardType: TextInputType.number,
-            prefixIcon: const Icon(Icons.fingerprint_rounded, color: AppColors.primaryBlue, size: 20),
-          ),
+          Obx(() {
+            final uidOk = controller.isAadhaarVerified.value;
+            final uidLoading = controller.isVerifyingAadhaar.value;
+            final uidData = controller.aadhaarVerifiedData.value;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppTextField(
+                  label: 'Aadhaar Number (12 Digits)',
+                  controller: controller.aadhaarController,
+                  hint: '12-digit Aadhaar number',
+                  keyboardType: TextInputType.number,
+                  maxLength: 12,
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(12),
+                    FilteringTextInputFormatter.digitsOnly,
+                  ],
+                  prefixIcon: const Icon(Icons.fingerprint_rounded, color: AppColors.primaryBlue, size: 20),
+                  suffixIcon: Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: uidLoading
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                          )
+                        : uidOk
+                            ? const Icon(Icons.verified_user_rounded, color: AppColors.success, size: 22)
+                            : TextButton(
+                                onPressed: controller.verifyAadhaarWithWay2Api,
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.primaryBlue,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                ),
+                                child: const Text('Verify', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                              ),
+                  ),
+                ),
+                if (uidOk && uidData != null)
+                  Container(
+                    margin: const EdgeInsets.only(top: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.verified_user_rounded, color: AppColors.success, size: 15),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'UIDAI Verified${uidData['fullName'] != null && uidData['fullName'].toString().isNotEmpty ? ' • ${uidData['fullName']}' : ''}${uidData['state'] != null && uidData['state'].toString().isNotEmpty ? ' • ${uidData['state']}' : ''}${uidData['gender'] != null && uidData['gender'].toString().isNotEmpty ? ' • ${uidData['gender']}' : ''}',
+                            style: const TextStyle(fontSize: 11, color: AppColors.success, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            );
+          }),
           const SizedBox(height: 14),
           GestureDetector(
             onTap: () async {
@@ -325,10 +493,13 @@ class KycView extends GetView<KycController> {
             ),
           ),
           const SizedBox(height: 20),
-          AppButton(
-            text: 'Continue to Uploads',
-            onPressed: controller.nextStep,
-          ),
+          Obx(() => AppButton(
+                text: controller.isVerifyingStep1.value
+                    ? 'Verifying with UIDAI & NSDL...'
+                    : 'Verify & Continue to Uploads',
+                isLoading: controller.isVerifyingStep1.value,
+                onPressed: controller.nextStep,
+              )),
         ],
       ),
     );
@@ -566,6 +737,73 @@ class KycView extends GetView<KycController> {
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
+                  ),
+                ],
+              );
+            }),
+          ),
+          const SizedBox(height: 20),
+
+          // Real Biometric Authentication (Fingerprint / Face ID)
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Obx(() {
+              final bioDone = controller.isBiometricVerified.value;
+              return Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: bioDone ? AppColors.tintGreen : AppColors.tintBlue,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.fingerprint_rounded,
+                      color: bioDone ? AppColors.success : AppColors.primaryBlue,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              'Biometric Verification',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppColors.navyText),
+                            ),
+                            if (bioDone) ...[
+                              const SizedBox(width: 6),
+                              const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 16),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          bioDone ? 'Fingerprint matched & verified ✓' : 'Scan phone fingerprint or Face ID',
+                          style: TextStyle(fontSize: 11, color: bioDone ? AppColors.success : AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: bioDone ? AppColors.tintGreen : AppColors.primaryBlue,
+                      foregroundColor: bioDone ? AppColors.success : Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: controller.verifyWithBiometrics,
+                    child: Text(bioDone ? 'Verified ✓' : 'Scan Bio', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
                 ],
               );

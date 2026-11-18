@@ -20,6 +20,49 @@ class RechargeRepository {
     );
   }
 
+  Future<ApiResponse<Map<String, dynamic>>> checkDthOperator(String dthNumber) async {
+    try {
+      final res = await _client.post<Map<String, dynamic>>(
+        ApiEndpoints.dthOperatorCheck,
+        data: {'dthNumber': dthNumber.trim(), 'dth_number': dthNumber.trim()},
+        fromJson: (json) => Map<String, dynamic>.from(json as Map),
+      );
+      if (res.success && res.data != null) return res;
+      return ApiResponse.error(
+        res.message.isNotEmpty ? res.message : 'Could not detect DTH operator.',
+      );
+    } on ApiException catch (e) {
+      return ApiResponse.error(e.message);
+    } catch (e) {
+      return ApiResponse.error('DTH operator check failed: $e');
+    }
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getDthAdvanceInfo(
+    String dthNumber, {
+    String? operator,
+  }) async {
+    try {
+      final res = await _client.post<Map<String, dynamic>>(
+        ApiEndpoints.dthInfo,
+        data: {
+          'dthNumber': dthNumber.trim(),
+          'dth_number': dthNumber.trim(),
+          if (operator != null && operator.trim().isNotEmpty) 'operator': operator.trim(),
+        },
+        fromJson: (json) => Map<String, dynamic>.from(json as Map),
+      );
+      if (res.success && res.data != null) return res;
+      return ApiResponse.error(
+        res.message.isNotEmpty ? res.message : 'Could not fetch DTH customer info.',
+      );
+    } on ApiException catch (e) {
+      return ApiResponse.error(e.message);
+    } catch (e) {
+      return ApiResponse.error('DTH info fetch failed: $e');
+    }
+  }
+
   Future<ApiResponse<List<OperatorModel>>> getOperators(String type) async {
     return await _client.get<List<OperatorModel>>(
       ApiEndpoints.rechargeOperators,

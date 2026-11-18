@@ -1,20 +1,157 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/biometric_service.dart';
+import '../../core/services/storage_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/utils/validators.dart';
 import '../../app/routes/app_routes.dart';
+import '../../shared/widgets/personal_qr_sheet.dart';
 
 class ProfileController extends GetxController {
   final AuthService authService = Get.find<AuthService>();
+  final StorageService storageService = Get.find<StorageService>();
+  final ImagePicker _picker = ImagePicker();
 
   final RxBool biometricEnabled = true.obs;
   final RxBool pushNotificationsEnabled = true.obs;
   final RxBool isUpdatingProfile = false.obs;
 
-  void toggleBiometrics(bool val) {
-    biometricEnabled.value = val;
+  @override
+  void onInit() {
+    super.onInit();
+    biometricEnabled.value = storageService.isBiometricEnabled();
+  }
+
+  Future<void> toggleBiometrics(bool val) async {
+    if (val) {
+      try {
+        final biometric = Get.find<BiometricService>();
+        final authenticated = await biometric.authenticate(
+          reason: 'Authenticate to enable biometric login for FlamePay',
+        );
+        if (authenticated) {
+          biometricEnabled.value = true;
+          await storageService.setBiometricEnabled(true);
+          Get.snackbar(
+            'Biometrics Enabled',
+            'You can now use fingerprint or face ID to unlock FlamePay',
+            backgroundColor: AppColors.success.withValues(alpha: 0.15),
+            colorText: AppColors.success,
+            icon: const Icon(Icons.fingerprint_rounded, color: AppColors.success),
+          );
+        } else {
+          biometricEnabled.value = false;
+        }
+      } catch (e) {
+        biometricEnabled.value = true;
+        await storageService.setBiometricEnabled(true);
+      }
+    } else {
+      biometricEnabled.value = false;
+      await storageService.setBiometricEnabled(false);
+      Get.snackbar(
+        'Biometrics Disabled',
+        'Biometric authentication has been turned off',
+      );
+    }
+  }
+
+  void pickProfilePhoto() {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 44,
+              height: 4,
+              decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2)),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Change Profile Photo',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.navyText),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Choose your source to update your profile image',
+              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 18),
+            ListTile(
+              leading: Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(color: AppColors.tintBlue, shape: BoxShape.circle),
+                child: const Icon(Icons.camera_alt_rounded, color: AppColors.primaryBlue),
+              ),
+              title: const Text('Take Photo (Camera)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              subtitle: const Text('Take a new profile picture with camera', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textSecondary),
+              onTap: () {
+                Get.back();
+                _selectAndSavePhoto(ImageSource.camera);
+              },
+            ),
+            const Divider(height: 16),
+            ListTile(
+              leading: Container(
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(color: AppColors.tintOrange, shape: BoxShape.circle),
+                child: const Icon(Icons.photo_library_rounded, color: AppColors.accentOrange),
+              ),
+              title: const Text('Choose from Gallery', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              subtitle: const Text('Select a photo from your gallery', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+              trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textSecondary),
+              onTap: () {
+                Get.back();
+                _selectAndSavePhoto(ImageSource.gallery);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  Future<void> _selectAndSavePhoto(ImageSource source) async {
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: source,
+        maxWidth: 1080,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (picked != null) {
+        final user = authService.currentUser.value;
+        if (user != null) {
+          final updated = user.copyWith(avatarUrl: picked.path);
+          authService.setUser(updated);
+          await storageService.setUserData(updated.toJson());
+          Get.snackbar(
+            'Profile Photo Updated',
+            'Your new profile picture has been updated across FlamePay!',
+            backgroundColor: AppColors.success.withValues(alpha: 0.15),
+            colorText: AppColors.success,
+            icon: const Icon(Icons.check_circle_rounded, color: AppColors.success),
+          );
+        }
+      }
+    } catch (e) {
+      Get.snackbar('Notice', 'Could not pick image: $e');
+    }
   }
 
   void showEditProfileDialog(BuildContext context) {
@@ -157,59 +294,7 @@ class ProfileController extends GetxController {
   }
 
   void showQrCodeModal(BuildContext context) {
-    final user = authService.currentUser.value;
-    final name = (user != null && user.name.isNotEmpty) ? user.name : 'Rohit Kumar';
-    final phone = user?.phone ?? '+91 9876543210';
-    final upiId = '${phone.replaceAll("+91 ", "").replaceAll(" ", "")}@flamepay';
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(28),
-            topRight: Radius.circular(28),
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('My FlamePay QR', style: AppTypography.title.copyWith(color: AppColors.navyText)),
-                IconButton(icon: const Icon(Icons.close_rounded), onPressed: () => Get.back()),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border, width: 2),
-                boxShadow: const [AppColors.softBlueShadow],
-              ),
-              child: const Icon(
-                Icons.qr_code_2_rounded,
-                size: 180,
-                color: AppColors.primaryBlue,
-              ),
-            ),
-            const SizedBox(height: 14),
-            Text(name, style: AppTypography.title.copyWith(color: AppColors.navyText, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 4),
-            Text('UPI ID: $upiId', style: AppTypography.caption.copyWith(color: AppColors.primaryBlue, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            const Text('Scan using any UPI app to receive money into your FlamePay Wallet.', textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
+    PersonalQrSheet.show(context);
   }
 
   void logout([BuildContext? context]) {

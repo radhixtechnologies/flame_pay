@@ -284,64 +284,238 @@ class _DthRechargeTab extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Select DTH Operator
-          Text('Select DTH Provider', style: AppTypography.caption.copyWith(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Obx(() => InkWell(
-                onTap: () {
-                  OperatorSelectorSheet.show(
-                    context: context,
-                    operators: MockRechargeData.dthOperators,
-                    selectedOperator: controller.selectedDthOperator.value,
-                    title: 'Select DTH Provider',
-                  ).then((op) {
-                    if (op != null) controller.onSelectOperator(op);
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.tv_rounded, color: AppColors.primaryBlue, size: 24),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          controller.selectedDthOperator.value.name,
-                          style: AppTypography.bodyBold.copyWith(color: AppColors.navyText),
-                        ),
-                      ),
-                      const Icon(Icons.arrow_drop_down, color: AppColors.textSecondary),
-                    ],
-                  ),
-                ),
-              )),
-
-          const SizedBox(height: 18),
-
-          // Subscriber ID Box
+          // Subscriber ID Box with Live DTH Operator Check
           Text('Subscriber ID / Smart Card Number', style: AppTypography.caption.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: TextField(
-              controller: controller.dthSubscriberController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                hintText: 'e.g. 1023456789',
-                border: InputBorder.none,
+          Obx(() {
+            final isDetecting = controller.isCheckingDthOperator.value;
+            return Container(
+              padding: const EdgeInsets.only(left: 14, right: 8, top: 4, bottom: 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+                boxShadow: const [AppColors.cardShadow],
               ),
-            ),
-          ),
+              child: Row(
+                children: [
+                  const Icon(Icons.credit_card_rounded, color: AppColors.primaryBlue, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: controller.dthSubscriberController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      style: AppTypography.title.copyWith(color: AppColors.navyText, fontSize: 16),
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. 3012345678',
+                        border: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                  isDetecting
+                      ? const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryBlue),
+                          ),
+                        )
+                      : InkWell(
+                          onTap: () => controller.checkDthOperatorNow(),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: AppColors.tintBlue,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.radar_rounded, size: 15, color: AppColors.primaryBlue),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Detect',
+                                  style: TextStyle(
+                                    color: AppColors.primaryBlue,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                ],
+              ),
+            );
+          }),
+
+          const SizedBox(height: 16),
+
+          // DTH Provider Selector (Smoothly updates in place on Operator Check)
+          Text('DTH Provider', style: AppTypography.caption.copyWith(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Obx(() {
+            final op = controller.selectedDthOperator.value;
+            final detected = controller.detectedDthOperatorLabel.value;
+            final isDetected = detected.isNotEmpty;
+            return InkWell(
+              onTap: () {
+                OperatorSelectorSheet.show(
+                  context: context,
+                  operators: MockRechargeData.dthOperators,
+                  selectedOperator: op,
+                  title: 'Select DTH Provider',
+                ).then((picked) {
+                  if (picked != null) controller.onSelectOperator(picked);
+                });
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDetected ? AppColors.primaryBlue.withValues(alpha: 0.45) : AppColors.border,
+                  ),
+                  boxShadow: const [AppColors.cardShadow],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.tintBlue,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.tv_rounded, color: AppColors.primaryBlue, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 280),
+                        transitionBuilder: (child, anim) => FadeTransition(
+                          opacity: anim,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0, 0.15),
+                              end: Offset.zero,
+                            ).animate(anim),
+                            child: child,
+                          ),
+                        ),
+                        child: Column(
+                          key: ValueKey('${op.id}_$detected'),
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              op.name,
+                              style: AppTypography.bodyBold.copyWith(color: AppColors.navyText, fontSize: 15),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              isDetected ? detected : 'Tap to choose provider',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: isDetected ? AppColors.primaryBlue : AppColors.textSecondary,
+                                fontWeight: isDetected ? FontWeight.w600 : FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (isDetected)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        margin: const EdgeInsets.only(right: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.tintBlue,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'Auto',
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryBlue,
+                          ),
+                        ),
+                      ),
+                    const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
+                  ],
+                ),
+              ),
+            );
+          }),
+
+          const SizedBox(height: 16),
+
+          // Live DTH Advance Information Section (Matches FlamePay PlanCard White/Blue/Orange UI)
+          Obx(() {
+            final isFetching = controller.isFetchingDthInfo.value;
+            final info = controller.dthAdvanceInfo.value;
+
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 280),
+              child: isFetching
+                  ? Container(
+                      key: const ValueKey('dth_info_loading'),
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppColors.border),
+                        boxShadow: const [AppColors.cardShadow],
+                      ),
+                      child: const Row(
+                        children: [
+                          SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primaryBlue),
+                          ),
+                          SizedBox(width: 12),
+                          Text(
+                            'Fetching DTH customer info & balance...',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.navyText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : info != null
+                      ? _buildDthInfoCard(info)
+                      : SizedBox(
+                          key: const ValueKey('dth_info_button'),
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primaryBlue,
+                              backgroundColor: Colors.white,
+                              side: const BorderSide(color: AppColors.border),
+                              padding: const EdgeInsets.symmetric(vertical: 13),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            onPressed: () => controller.fetchDthAdvanceInfo(),
+                            icon: const Icon(Icons.account_balance_wallet_outlined, size: 18),
+                            label: const Text(
+                              'Fetch Customer Info & Balance',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                            ),
+                          ),
+                        ),
+            );
+          }),
 
           const SizedBox(height: 18),
 
@@ -349,11 +523,12 @@ class _DthRechargeTab extends StatelessWidget {
           Text('Recharge Amount (₹)', style: AppTypography.caption.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border),
+              boxShadow: const [AppColors.cardShadow],
             ),
             child: TextField(
               controller: controller.dthAmountController,
@@ -399,6 +574,172 @@ class _DthRechargeTab extends StatelessWidget {
               )),
         ],
       ),
+    );
+  }
+
+  Widget _buildDthInfoCard(Map<String, dynamic> info) {
+    final custName = (info['customerName'] ?? '').toString().trim();
+    final balance = (info['balance'] ?? '').toString().trim();
+    final monthly = (info['monthlyRecharge'] ?? '').toString().trim();
+    final nextDate = (info['nextRechargeDate'] ?? '').toString().trim();
+    final lastAmt = (info['lastRechargeAmount'] ?? '').toString().trim();
+    final lastDate = (info['lastRechargeDate'] ?? '').toString().trim();
+    final planName = (info['planName'] ?? '').toString().trim();
+    final status = (info['status'] ?? 'Active').toString().trim();
+    final rmn = (info['rmn'] ?? '').toString().trim();
+    final subId = controller.dthSubscriberController.text.trim();
+    final opName = controller.selectedDthOperator.value.name;
+
+    final stats = <Widget>[
+      if (balance.isNotEmpty) _dthStatPill('Current Balance', '₹$balance'),
+      if (monthly.isNotEmpty) _dthStatPill('Monthly Pack', '₹$monthly'),
+      if (nextDate.isNotEmpty) _dthStatPill('Next Recharge', nextDate),
+      if (lastAmt.isNotEmpty)
+        _dthStatPill('Last Recharge', '₹$lastAmt${lastDate.isNotEmpty ? ' ($lastDate)' : ''}'),
+      if (rmn.isNotEmpty) _dthStatPill('Reg. Mobile', rmn),
+    ];
+
+    return Container(
+      key: ValueKey('dth_info_card_${subId}_$custName'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+        boxShadow: const [AppColors.cardShadow],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.tintBlue,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.person_outline_rounded, color: AppColors.primaryBlue, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      custName.isNotEmpty ? custName : 'DTH Account Details',
+                      style: AppTypography.bodyBold.copyWith(color: AppColors.navyText, fontSize: 15),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '$opName • $subId',
+                      style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.tintBlue,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  status,
+                  style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+                ),
+              ),
+              const SizedBox(width: 4),
+              InkWell(
+                onTap: () => controller.fetchDthAdvanceInfo(),
+                borderRadius: BorderRadius.circular(8),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.refresh_rounded, size: 18, color: AppColors.primaryBlue),
+                ),
+              ),
+            ],
+          ),
+          if (stats.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border.withValues(alpha: 0.7)),
+              ),
+              child: Wrap(
+                spacing: 20,
+                runSpacing: 12,
+                children: stats,
+              ),
+            ),
+          ],
+          if (planName.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.subscriptions_outlined, size: 15, color: AppColors.primaryBlue),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Active Plan: $planName',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (monthly.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                InkWell(
+                  onTap: () {
+                    final clean = monthly.replaceAll(RegExp(r'[^0-9.]'), '');
+                    final parsed = double.tryParse(clean);
+                    if (parsed != null && parsed > 0) {
+                      controller.dthAmountController.text = parsed.toStringAsFixed(0);
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentOrange,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      'Fill ₹$monthly',
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _dthStatPill(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+        const SizedBox(height: 2),
+        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.navyText)),
+      ],
     );
   }
 }

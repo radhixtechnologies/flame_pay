@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_colors.dart';
@@ -216,23 +217,41 @@ class ProfileView extends GetView<ProfileController> {
         ),
         child: Row(
           children: [
-            // Dynamic Avatar Initials
-            Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
-                gradient: AppColors.blueGradient,
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text(
-                  initials,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22,
+            // Dynamic Avatar Image or Initials with Tap to change photo
+            GestureDetector(
+              onTap: controller.pickProfilePhoto,
+              child: Stack(
+                children: [
+                  Container(
+                    width: 66,
+                    height: 66,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: AppColors.blueGradient,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primaryBlue.withValues(alpha: 0.25),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: _buildAvatarContent(user?.avatarUrl, initials),
                   ),
-                ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: const BoxDecoration(
+                        color: AppColors.accentOrange,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 12),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(width: 16),
@@ -282,6 +301,45 @@ class ProfileView extends GetView<ProfileController> {
         ),
       );
     });
+  }
+
+  Widget _buildAvatarContent(String? avatarUrl, String initials) {
+    if (avatarUrl != null && avatarUrl.isNotEmpty) {
+      if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) {
+        return Image.network(
+          avatarUrl,
+          fit: BoxFit.cover,
+          width: 66,
+          height: 66,
+          errorBuilder: (_, __, ___) => _buildInitialsFallback(initials),
+        );
+      } else {
+        final file = File(avatarUrl);
+        if (file.existsSync()) {
+          return Image.file(
+            file,
+            fit: BoxFit.cover,
+            width: 66,
+            height: 66,
+            errorBuilder: (_, __, ___) => _buildInitialsFallback(initials),
+          );
+        }
+      }
+    }
+    return _buildInitialsFallback(initials);
+  }
+
+  Widget _buildInitialsFallback(String initials) {
+    return Center(
+      child: Text(
+        initials,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 22,
+        ),
+      ),
+    );
   }
 
   Widget _buildSectionCard({

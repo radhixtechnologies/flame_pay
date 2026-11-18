@@ -111,7 +111,6 @@ class OtpController extends GetxController {
   @override
   void onClose() {
     _resendTimer?.cancel();
-    otpController.dispose();
     super.onClose();
   }
 }

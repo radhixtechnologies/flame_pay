@@ -13,6 +13,7 @@ class StorageService extends GetxService {
   static const String _keyMpin = 'user_mpin';
   static const String _keyBiometric = 'biometric_enabled';
   static const String _keyUser = 'user_data';
+  static const String _keyAppliedCards = 'applied_credit_cards';
 
   Future<StorageService> init([String container = 'FlamePayStorage']) async {
     await GetStorage.init(container);
@@ -53,6 +54,47 @@ class StorageService extends GetxService {
 
   Future<void> setUserData(Map<String, dynamic> data) =>
       _prefs.write(_keyUser, jsonEncode(data));
+
+  // Applied Credit Cards Persistence
+  Map<String, dynamic> getAppliedCreditCards() {
+    final str = _prefs.read<String>(_keyAppliedCards);
+    if (str == null) return {};
+    try {
+      return jsonDecode(str) as Map<String, dynamic>;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  Future<void> saveAppliedCreditCard({
+    required int productId,
+    required String leadId,
+    required String cardName,
+    required String bankName,
+    String? redirectUrl,
+  }) async {
+    final current = getAppliedCreditCards();
+    current[productId.toString()] = {
+      'productId': productId,
+      'leadId': leadId,
+      'cardName': cardName,
+      'bankName': bankName,
+      'redirectUrl': redirectUrl ?? '',
+      'status': 'Under Review',
+      'appliedAt': DateTime.now().toIso8601String(),
+    };
+    await _prefs.write(_keyAppliedCards, jsonEncode(current));
+  }
+
+  bool isCardApplied(int productId) {
+    final current = getAppliedCreditCards();
+    return current.containsKey(productId.toString());
+  }
+
+  Map<String, dynamic>? getAppliedCardDetails(int productId) {
+    final current = getAppliedCreditCards();
+    return current[productId.toString()] as Map<String, dynamic>?;
+  }
 
   // Clear Session
   Future<void> clearAuth() async {

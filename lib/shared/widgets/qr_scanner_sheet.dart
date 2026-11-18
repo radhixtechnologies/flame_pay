@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../app/routes/app_routes.dart';
 import 'app_button.dart';
+import 'personal_qr_sheet.dart';
 
 class QrScannerSheet extends StatefulWidget {
   static void show(BuildContext context) {
@@ -39,6 +41,7 @@ class _QrScannerSheetState extends State<QrScannerSheet> {
 
   @override
   void dispose() {
+    _scannerController.stop();
     _scannerController.dispose();
     super.dispose();
   }
@@ -50,9 +53,40 @@ class _QrScannerSheetState extends State<QrScannerSheet> {
       final rawValue = barcode.rawValue;
       if (rawValue != null && rawValue.isNotEmpty) {
         _hasDetected = true;
+        _scannerController.stop();
         _handleScannedData(rawValue);
         break;
       }
+    }
+  }
+
+  Future<void> _scanFromGallery() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: ImageSource.gallery, maxWidth: 1600, maxHeight: 1600, imageQuality: 92);
+      if (picked == null) return;
+      final capture = await _scannerController.analyzeImage(picked.path);
+      if (capture != null && capture.barcodes.isNotEmpty) {
+        for (final barcode in capture.barcodes) {
+          final raw = barcode.rawValue;
+          if (raw != null && raw.trim().isNotEmpty) {
+            _hasDetected = true;
+            _scannerController.stop();
+            _handleScannedData(raw.trim());
+            return;
+          }
+        }
+      }
+      Get.snackbar(
+        'No QR Found',
+        'Could not detect a UPI QR code in the selected image. Please choose a clear QR photo.',
+        backgroundColor: AppColors.error.withValues(alpha: 0.15),
+        colorText: AppColors.error,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+      );
+    } catch (e) {
+      Get.snackbar('Gallery Scan Error', 'Could not scan image: $e');
     }
   }
 
@@ -253,8 +287,15 @@ class _QrScannerSheetState extends State<QrScannerSheet> {
               _buildScannerOption(
                 icon: Icons.photo_library_rounded,
                 label: 'Gallery',
+                onTap: _scanFromGallery,
+              ),
+              _buildScannerOption(
+                icon: Icons.qr_code_2_rounded,
+                label: 'My QR',
                 onTap: () {
-                  _handleScannedData('upi://pay?pa=sharma.merchant@okhdfcbank&pn=Sharma%20General%20Store&am=250');
+                  _scannerController.stop();
+                  Get.back();
+                  PersonalQrSheet.show(context);
                 },
               ),
             ],
@@ -262,13 +303,15 @@ class _QrScannerSheetState extends State<QrScannerSheet> {
 
           const SizedBox(height: 16),
 
-          // Instant Mock QR Simulation for testing & instant payments
+          // Open Personal Receive Money QR Scanner
           AppButton(
-            text: 'Simulate Scanned QR (Sharma Stores ₹250)',
+            text: 'Show My Personal Receive QR',
             type: ButtonType.orangePrimary,
             height: 48,
             onPressed: () {
-              _handleScannedData('upi://pay?pa=sharma.merchant@okhdfcbank&pn=Sharma%20General%20Store&am=250');
+              _scannerController.stop();
+              Get.back();
+              PersonalQrSheet.show(context);
             },
           ),
           const SizedBox(height: 10),

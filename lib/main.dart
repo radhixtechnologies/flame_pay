@@ -6,6 +6,7 @@ import 'app/routes/app_pages.dart';
 import 'core/services/storage_service.dart';
 import 'core/services/connectivity_service.dart';
 import 'core/services/auth_service.dart';
+import 'core/services/biometric_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/config/app_config.dart';
 
@@ -38,9 +39,11 @@ void main() async {
   final authService = await AuthService().init();
   Get.put<AuthService>(authService, permanent: true);
 
+  final biometricService = await BiometricService().init();
+  Get.put<BiometricService>(biometricService, permanent: true);
+
   runApp(const FlamePayApp());
 }
-
 class FlamePayApp extends StatelessWidget {
   final String? initialRoute;
   const FlamePayApp({super.key, this.initialRoute});

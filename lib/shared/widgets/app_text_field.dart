@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 
@@ -17,6 +18,10 @@ class AppTextField extends StatelessWidget {
   final bool enabled;
   final int maxLines;
   final FocusNode? focusNode;
+  final TextCapitalization textCapitalization;
+  final List<TextInputFormatter>? inputFormatters;
+  final int? maxLength;
+  final InputCounterWidgetBuilder? buildCounter;
 
   const AppTextField({
     super.key,
@@ -34,6 +39,10 @@ class AppTextField extends StatelessWidget {
     this.enabled = true,
     this.maxLines = 1,
     this.focusNode,
+    this.textCapitalization = TextCapitalization.none,
+    this.inputFormatters,
+    this.maxLength,
+    this.buildCounter,
   });
 
   @override
@@ -62,6 +71,10 @@ class AppTextField extends StatelessWidget {
           enabled: enabled,
           maxLines: maxLines,
           focusNode: focusNode,
+          textCapitalization: textCapitalization,
+          inputFormatters: inputFormatters,
+          maxLength: maxLength,
+          buildCounter: buildCounter ?? (maxLength != null ? (context, {required currentLength, required isFocused, maxLength}) => null : null),
           style: AppTypography.bodyBold.copyWith(color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hint,

@@ -7,27 +7,27 @@ import 'controllers/mpin_setup_controller.dart';
 class LoginBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<LoginController>(() => LoginController());
+    Get.lazyPut<LoginController>(() => LoginController(), fenix: true);
   }
 }
 
 class OtpBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<OtpController>(() => OtpController());
+    Get.lazyPut<OtpController>(() => OtpController(), fenix: true);
   }
 }
 
 class RegistrationBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<RegistrationController>(() => RegistrationController());
+    Get.lazyPut<RegistrationController>(() => RegistrationController(), fenix: true);
   }
 }
 
 class MpinSetupBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<MpinSetupController>(() => MpinSetupController());
+    Get.lazyPut<MpinSetupController>(() => MpinSetupController(), fenix: true);
   }
 }

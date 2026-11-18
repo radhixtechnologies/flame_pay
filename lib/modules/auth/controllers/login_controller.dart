@@ -2,17 +2,46 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/repositories/auth_repository.dart';
 import '../../../app/routes/app_routes.dart';
-
+import '../../../core/services/auth_service.dart';
+import '../../../core/services/biometric_service.dart';
+import '../../../core/services/storage_service.dart';
+import '../../../data/models/user_model.dart';
 import '../../../core/utils/app_snackbar.dart';
 
 class LoginController extends GetxController {
   final AuthRepository _repo = Get.find<AuthRepository>();
+  final StorageService _storage = Get.find<StorageService>();
 
   final loginFormKey = GlobalKey<FormState>();
   final phoneController = TextEditingController();
   final nameController = TextEditingController();
   final isSendingOtp = false.obs;
   final isNewUser = false.obs;
+  final canBiometricLogin = false.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    canBiometricLogin.value = _storage.isBiometricEnabled();
+  }
+
+  Future<void> loginWithBiometrics() async {
+    try {
+      final biometric = Get.find<BiometricService>();
+      final ok = await biometric.authenticate(
+        reason: 'Authenticate with fingerprint or Face ID to login to FlamePay',
+      );
+      if (ok) {
+        final userData = _storage.getUserData();
+        if (userData != null) {
+          final user = UserModel.fromJson(userData);
+          Get.find<AuthService>().setUser(user);
+        }
+        Get.offAllNamed(AppRoutes.home);
+        AppSnackbar.showSuccess('Biometric authentication verified');
+      }
+    } catch (_) {}
+  }
 
   void toggleNewUser(bool val) {
     isNewUser.value = val;
@@ -44,12 +73,5 @@ class LoginController extends GetxController {
     } finally {
       isSendingOtp.value = false;
     }
-  }
-
-  @override
-  void onClose() {
-    phoneController.dispose();
-    nameController.dispose();
-    super.onClose();
   }
 }

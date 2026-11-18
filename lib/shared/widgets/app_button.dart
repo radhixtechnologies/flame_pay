@@ -6,7 +6,7 @@ enum ButtonType {
   orangePrimary,
   blueSecondary,
   outline,
-  text,
+  text, primary,
 }
 
 class AppButton extends StatelessWidget {
@@ -101,6 +101,13 @@ class AppButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(borderRadius),
           );
           break;
+        case ButtonType.primary:
+          decoration = BoxDecoration(
+            gradient: AppColors.blueGradient,
+            borderRadius: BorderRadius.circular(borderRadius),
+            boxShadow: const [AppColors.buttonShadow],
+          );
+          break;
       }
     }
 
@@ -129,6 +136,7 @@ class AppButton extends StatelessWidget {
     switch (type) {
       case ButtonType.orangePrimary:
       case ButtonType.blueSecondary:
+      case ButtonType.primary:
         return Colors.white;
       case ButtonType.outline:
       case ButtonType.text:

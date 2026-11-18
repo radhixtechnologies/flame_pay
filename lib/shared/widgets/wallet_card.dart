@@ -4,6 +4,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/utils/formatters.dart';
 import '../../app/routes/app_routes.dart';
+import 'personal_qr_sheet.dart';
 import 'qr_scanner_sheet.dart';
 
 class WalletCard extends StatelessWidget {
@@ -122,7 +123,7 @@ class WalletCard extends StatelessWidget {
 
           const Divider(height: 1, color: AppColors.border),
 
-          // Bottom 4 Quick Action Buttons: Pay, Add Money, Send, Passbook
+          // Bottom Quick Action Buttons: Pay, My QR, Send, Passbook
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
             child: Row(
@@ -130,15 +131,15 @@ class WalletCard extends StatelessWidget {
                 Expanded(
                   child: _QuickActionBtn(
                     icon: Icons.qr_code_scanner_rounded,
-                    label: 'Pay',
+                    label: 'Scan & Pay',
                     onTap: () => QrScannerSheet.show(context),
                   ),
                 ),
                 Expanded(
                   child: _QuickActionBtn(
-                    icon: Icons.add_circle_outline_rounded,
-                    label: 'Add Money',
-                    onTap: onAddMoney ?? () => Get.toNamed('/wallet/add-money'),
+                    icon: Icons.qr_code_2_rounded,
+                    label: 'My QR',
+                    onTap: () => PersonalQrSheet.show(context),
                   ),
                 ),
                 Expanded(

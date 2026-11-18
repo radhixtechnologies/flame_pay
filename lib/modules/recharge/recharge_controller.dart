@@ -26,6 +26,11 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
   final dthSubscriberController = TextEditingController();
   final dthAmountController = TextEditingController();
   final Rx<OperatorModel> selectedDthOperator = MockRechargeData.dthOperators.first.obs;
+  final RxBool isCheckingDthOperator = false.obs;
+  final RxBool isFetchingDthInfo = false.obs;
+  final Rxn<Map<String, dynamic>> dthAdvanceInfo = Rxn<Map<String, dynamic>>();
+  final RxString detectedDthOperatorLabel = ''.obs;
+  String _lastCheckedDth = '';
 
   // Payment states
   final RxBool isProcessingPayment = false.obs;
@@ -54,8 +59,200 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
     }
 
     mobileController.addListener(_onMobileChanged);
+    dthSubscriberController.addListener(_onDthSubscriberChanged);
     if (mobileController.text.length == 10) {
       autoDetectOperator(mobileController.text);
+    }
+  }
+
+  void _onDthSubscriberChanged() {
+    final text = dthSubscriberController.text.trim();
+    if (text != _lastCheckedDth) {
+      dthAdvanceInfo.value = null;
+      detectedDthOperatorLabel.value = '';
+    }
+    if (text.length >= 10 && text != _lastCheckedDth) {
+      _lastCheckedDth = text;
+      checkDthOperatorNow(silent: true);
+    } else if (text.length < 10) {
+      _lastCheckedDth = '';
+    }
+  }
+
+  void _matchDthOperator(String rawOp, {String? displayName}) {
+    final opLow = rawOp.toLowerCase().trim();
+    final nameHint = (displayName ?? '').trim();
+    if (opLow.isEmpty && nameHint.isEmpty) return;
+
+    final combined = '$opLow ${nameHint.toLowerCase()}';
+    for (final op in MockRechargeData.dthOperators) {
+      final idLow = op.id.toLowerCase();
+      final nameLow = op.name.toLowerCase();
+      if (combined.contains(idLow) ||
+          (opLow.isNotEmpty && nameLow.contains(opLow)) ||
+          (combined.contains('tata') && idLow.contains('tata')) ||
+          (combined.contains('sky') && idLow.contains('tata')) ||
+          (combined.contains('airtel') && idLow.contains('airtel')) ||
+          (combined.contains('dish') && idLow.contains('dish')) ||
+          (combined.contains('sun') && idLow.contains('sun')) ||
+          ((combined.contains('d2h') || combined.contains('videocon')) && idLow.contains('d2h'))) {
+        selectedDthOperator.value = op;
+        detectedDthOperatorLabel.value = nameHint.isNotEmpty ? nameHint : op.name;
+        selectedDthOperator.refresh();
+        return;
+      }
+    }
+    detectedDthOperatorLabel.value = nameHint.isNotEmpty ? nameHint : rawOp;
+  }
+
+  Map<String, dynamic> _unwrapResult(Map<String, dynamic> rawData) {
+    final inner = rawData['result'];
+    if (inner is Map) {
+      return Map<String, dynamic>.from(inner);
+    }
+    if (inner is List && inner.isNotEmpty && inner.first is Map) {
+      return Map<String, dynamic>.from(inner.first as Map);
+    }
+    return rawData;
+  }
+
+  // Live DTH Operator Check (POST /api/v1/dth/operator-check)
+  Future<bool> checkDthOperatorNow({bool silent = false}) async {
+    final subId = dthSubscriberController.text.trim();
+    if (subId.length < 6) {
+      if (!silent) {
+        Get.snackbar(
+          'Subscriber ID Required',
+          'Please enter a valid DTH Subscriber ID / Smart Card Number',
+          backgroundColor: Colors.orange.shade100,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+        );
+      }
+      return false;
+    }
+
+    isCheckingDthOperator.value = true;
+    try {
+      final res = await _repo.checkDthOperator(subId);
+      if (res.success && res.data != null) {
+        final rawData = res.data!;
+        final inner = _unwrapResult(rawData);
+        final rawOp = (inner['operator'] ??
+                inner['operatorCode'] ??
+                inner['operator_code'] ??
+                rawData['operator'] ??
+                rawData['operatorCode'] ??
+                '')
+            .toString()
+            .trim();
+        final rawOpName = (inner['operator_name'] ??
+                inner['operatorName'] ??
+                rawData['operator_name'] ??
+                rawData['operatorName'] ??
+                rawOp)
+            .toString()
+            .trim();
+
+        if (rawOp.isNotEmpty || rawOpName.isNotEmpty) {
+          _matchDthOperator(rawOp, displayName: rawOpName);
+          _lastCheckedDth = subId;
+          // Immediately fetch DTH Advance Customer Info so screen updates automatically
+          fetchDthAdvanceInfo(silentError: true);
+          return true;
+        }
+      }
+      if (!silent) {
+        Get.snackbar(
+          'Operator Not Found',
+          res.message.isNotEmpty ? res.message : 'Could not detect DTH operator for $subId',
+          backgroundColor: Colors.red.shade100,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+        );
+      }
+      return false;
+    } finally {
+      isCheckingDthOperator.value = false;
+    }
+  }
+
+  // Live DTH Advance Information (POST /api/v1/dth/info)
+  Future<void> fetchDthAdvanceInfo({bool silentError = false}) async {
+    final subId = dthSubscriberController.text.trim();
+    if (subId.length < 6) {
+      if (!silentError) {
+        Get.snackbar(
+          'Subscriber ID Required',
+          'Please enter a valid DTH Subscriber ID / Smart Card Number first',
+          backgroundColor: Colors.orange.shade100,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+        );
+      }
+      return;
+    }
+
+    isFetchingDthInfo.value = true;
+    try {
+      // Auto-detect operator first if not yet checked for this subscriber ID
+      if (detectedDthOperatorLabel.value.isEmpty && !isCheckingDthOperator.value) {
+        final opRes = await _repo.checkDthOperator(subId);
+        if (opRes.success && opRes.data != null) {
+          final inner = _unwrapResult(opRes.data!);
+          final rawOp = (inner['operator'] ?? inner['operatorCode'] ?? opRes.data!['operator'] ?? '').toString().trim();
+          final rawOpName = (inner['operator_name'] ?? inner['operatorName'] ?? opRes.data!['operator_name'] ?? rawOp).toString().trim();
+          if (rawOp.isNotEmpty || rawOpName.isNotEmpty) {
+            _matchDthOperator(rawOp, displayName: rawOpName);
+            _lastCheckedDth = subId;
+          }
+        }
+      }
+
+      final res = await _repo.getDthAdvanceInfo(
+        subId,
+        operator: selectedDthOperator.value.id,
+      );
+
+      if (res.success && res.data != null) {
+        final rawData = res.data!;
+        final rec = _unwrapResult(rawData);
+        final normalized = <String, dynamic>{
+          'customerName': (rawData['customerName'] ?? rec['customer_name'] ?? rec['customerName'] ?? rec['name'] ?? rec['CustomerName'] ?? '').toString().trim(),
+          'balance': (rawData['balance'] ?? rec['balance'] ?? rec['account_balance'] ?? rec['Balance'] ?? rec['bal'] ?? '').toString().trim(),
+          'monthlyRecharge': (rawData['monthlyRecharge'] ?? rec['monthly_recharge'] ?? rec['monthlyRecharge'] ?? rec['MonthlyRecharge'] ?? rec['monthly_pack'] ?? rec['recommended_amount'] ?? '').toString().trim(),
+          'nextRechargeDate': (rawData['nextRechargeDate'] ?? rec['next_recharge_date'] ?? rec['nextRechargeDate'] ?? rec['NextRechargeDate'] ?? rec['expiry_date'] ?? rec['due_date'] ?? '').toString().trim(),
+          'lastRechargeAmount': (rawData['lastRechargeAmount'] ?? rec['last_recharge_amount'] ?? rec['lastRechargeAmount'] ?? rec['LastRechargeAmount'] ?? '').toString().trim(),
+          'lastRechargeDate': (rawData['lastRechargeDate'] ?? rec['last_recharge_date'] ?? rec['lastRechargeDate'] ?? rec['LastRechargeDate'] ?? '').toString().trim(),
+          'planName': (rawData['planName'] ?? rec['plan_name'] ?? rec['planName'] ?? rec['planname'] ?? rec['active_plan'] ?? rec['package_name'] ?? '').toString().trim(),
+          'status': (rawData['status'] ?? rec['status'] ?? rec['Status'] ?? rec['account_status'] ?? 'Active').toString().trim(),
+          'rmn': (rawData['rmn'] ?? rec['rmn'] ?? rec['RMN'] ?? rec['registered_mobile'] ?? rec['mobile'] ?? '').toString().trim(),
+          'operator': (rawData['operator'] ?? rec['operator'] ?? selectedDthOperator.value.name).toString().trim(),
+        };
+
+        dthAdvanceInfo.value = normalized;
+        final monthly = normalized['monthlyRecharge'].toString().replaceAll(RegExp(r'[^0-9.]'), '');
+        if (monthly.isNotEmpty && dthAmountController.text.trim().isEmpty) {
+          final parsed = double.tryParse(monthly);
+          if (parsed != null && parsed > 0) {
+            dthAmountController.text = parsed.toStringAsFixed(0);
+          }
+        }
+      } else {
+        dthAdvanceInfo.value = null;
+        if (!silentError) {
+          Get.snackbar(
+            'DTH Info Unavailable',
+            res.message.isNotEmpty ? res.message : 'Could not fetch DTH customer info. Verify Subscriber ID & Operator.',
+            backgroundColor: Colors.red.shade100,
+            snackPosition: SnackPosition.BOTTOM,
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
+          );
+        }
+      }
+    } finally {
+      isFetchingDthInfo.value = false;
     }
   }
 

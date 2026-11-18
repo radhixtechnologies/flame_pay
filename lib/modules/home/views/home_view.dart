@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../core/theme/app_colors.dart';
@@ -97,20 +98,66 @@ class HomeView extends GetView<HomeController> {
                         ),
                         const SizedBox(height: 12),
 
-                        // User Greeting: "Hello, Rohit Kumar" with Avatar
+                        // User Greeting with Real Reactive Avatar
                         Row(
                           children: [
-                            Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
-                                color: AppColors.tintBlue,
-                              ),
-                              child: const Center(
-                                child: Icon(Icons.person, color: AppColors.primaryBlue, size: 26),
-                              ),
+                            GestureDetector(
+                              onTap: () => Get.toNamed(AppRoutes.profile),
+                              child: Obx(() {
+                                final user = controller.authService.currentUser.value;
+                                final avatarUrl = user?.avatarUrl;
+                                final name = user?.name ?? 'FlamePay Member';
+                                final initial = name.isNotEmpty ? name[0].toUpperCase() : 'F';
+
+                                Widget avatarWidget = Center(
+                                  child: Text(
+                                    initial,
+                                    style: const TextStyle(
+                                      color: AppColors.primaryBlue,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                );
+
+                                if (avatarUrl != null && avatarUrl.isNotEmpty) {
+                                  if (avatarUrl.startsWith('http')) {
+                                    avatarWidget = Image.network(
+                                      avatarUrl,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => avatarWidget,
+                                    );
+                                  } else {
+                                    final file = File(avatarUrl);
+                                    if (file.existsSync()) {
+                                      avatarWidget = Image.file(
+                                        file,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) => avatarWidget,
+                                      );
+                                    }
+                                  }
+                                }
+
+                                return Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
+                                    color: Colors.white,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.1),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: avatarWidget,
+                                );
+                              }),
                             ),
                             const SizedBox(width: 12),
                             Column(
