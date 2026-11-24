@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../core/network/api_client.dart';
+import '../../core/network/api_endpoints.dart';
+import '../../core/network/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/models/cibil_model.dart';
 import '../../data/repositories/financial_services_repository.dart';
@@ -21,9 +24,128 @@ class CibilController extends GetxController {
   final RxString selectedGender = 'male'.obs;
   final RxString currentPan = ''.obs;
 
+  // NSDL Live PAN Verification States (Exactly like KYC)
+  final isPanVerified = false.obs;
+  final isVerifyingPan = false.obs;
+  final panVerifiedData = Rxn<Map<String, dynamic>>();
+  String _lastVerifiedPan = '';
+
   @override
   void onInit() {
     super.onInit();
+    panController.addListener(() {
+      final text = panController.text;
+      if (text != text.toUpperCase()) {
+        final selection = panController.selection;
+        panController.value = panController.value.copyWith(
+          text: text.toUpperCase(),
+          selection: selection,
+        );
+      }
+      if (isPanVerified.value && text.trim().toUpperCase() != _lastVerifiedPan) {
+        isPanVerified.value = false;
+        panVerifiedData.value = null;
+      }
+    });
+  }
+
+  /// Step 1: Verify PAN with Income Tax Department (NSDL) exactly like KYC
+  Future<bool> verifyPanWithNsdl() async {
+    final pan = panController.text.trim().toUpperCase();
+    final panRegex = RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$');
+    if (!panRegex.hasMatch(pan)) {
+      Get.snackbar(
+        'Sahi PAN Enter Karein',
+        'PAN card number galat hai! 10 characters ka format (e.g. ABCDE1234F) hona chahiye.',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade900,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+      );
+      return false;
+    }
+
+    isVerifyingPan.value = true;
+    try {
+      final res = await ApiClient.instance.post<Map<String, dynamic>>(
+        ApiEndpoints.panVerify,
+        data: {
+          'pan': pan,
+          'panNumber': pan,
+          'fullName': nameController.text.trim(),
+          'name': nameController.text.trim(),
+          'dob': dobController.text.trim(),
+        },
+        fromJson: (json) => Map<String, dynamic>.from(json as Map),
+      );
+
+      if (res.success && res.data != null) {
+        final data = res.data!;
+        panVerifiedData.value = data;
+        isPanVerified.value = true;
+        _lastVerifiedPan = pan;
+
+        final isLive = data['isLiveVerified'] == true || data['isGovernmentVerified'] == true;
+        final officialName = (data['fullName'] ?? data['name'] ?? '').toString().trim();
+        if (isLive && officialName.isNotEmpty && officialName != 'PAN CARD HOLDER' && officialName != 'VERIFIED PAN HOLDER') {
+          nameController.text = officialName;
+        }
+        final officialDob = (data['dob'] ?? '').toString().trim();
+        if (isLive && officialDob.isNotEmpty && dobController.text.isEmpty) {
+          dobController.text = officialDob;
+        }
+
+        final statusDesc = (data['status'] ?? 'EXISTING AND VALID').toString();
+
+        Get.snackbar(
+          'PAN Verified (NSDL) ✓',
+          'PAN: $pan • $statusDesc',
+          backgroundColor: Colors.green.shade100,
+          colorText: Colors.green.shade900,
+          icon: const Icon(Icons.verified_rounded, color: Colors.green),
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+        );
+        return true;
+      } else {
+        isPanVerified.value = false;
+        Get.snackbar(
+          'PAN Verification Failed',
+          res.message.isNotEmpty ? res.message : 'Income Tax Department (NSDL) could not verify this PAN card.',
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade900,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 4),
+        );
+        return false;
+      }
+    } on ApiException catch (e) {
+      isPanVerified.value = false;
+      Get.snackbar(
+        'PAN Verification Failed',
+        e.message,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade900,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+        duration: const Duration(seconds: 4),
+      );
+      return false;
+    } catch (e) {
+      isPanVerified.value = false;
+      Get.snackbar(
+        'PAN Verification Error',
+        'Could not reach NSDL PAN verification service: $e',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade900,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
+      );
+      return false;
+    } finally {
+      isVerifyingPan.value = false;
+    }
   }
 
   Future<void> checkScoreForPan() async {
@@ -39,37 +161,18 @@ class CibilController extends GetxController {
       return;
     }
 
+    // Step 1: Jaise KYC me hota hai, pehle PAN NSDL verify karo
+    if (!isPanVerified.value) {
+      final panOk = await verifyPanWithNsdl();
+      if (!panOk) {
+        return; // Stop right here! CIBIL will NOT be checked if PAN is invalid
+      }
+    }
+
     final name = nameController.text.trim();
     if (name.isEmpty) {
       Get.snackbar('Validation', 'Please enter your full name as per PAN card',
           backgroundColor: Colors.orange.shade100);
-      return;
-    }
-
-    // Validate 4th character of PAN (Must be 'P' for Individual Personal)
-    final panType = pan[3];
-    if (panType != 'P' && panType != 'C' && panType != 'H') {
-      Get.snackbar('Personal PAN Required', 'Please enter an individual personal PAN card (4th letter must be P)',
-          backgroundColor: Colors.orange.shade100, duration: const Duration(seconds: 4));
-      return;
-    }
-
-    // Validate 5th character of PAN against cardholder surname/name
-    final panFifthChar = pan[4];
-    final nameParts = name.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-    final firstName = nameParts.first.toUpperCase();
-    final lastName = (nameParts.length > 1 ? nameParts.last : nameParts.first).toUpperCase();
-
-    final matchesSurname = lastName.startsWith(panFifthChar);
-    final matchesFirstName = firstName.startsWith(panFifthChar);
-
-    if (!matchesSurname && !matchesFirstName) {
-      Get.snackbar(
-        'Name Mismatch',
-        'The name "$name" does not match PAN $pan. Under Income Tax rules, the 5th character "$panFifthChar" must match your surname or name.',
-        backgroundColor: Colors.red.shade100,
-        duration: const Duration(seconds: 5),
-      );
       return;
     }
 
@@ -121,12 +224,32 @@ class CibilController extends GetxController {
         currentPan.value = pan;
         hasCheckedScore.value = true;
         viewState.value = ViewState.success;
+        Get.snackbar(
+          'PAN Verified & CIBIL Fetched',
+          'PAN $pan verified with Income Tax records. Score: ${res.data!.score} (${res.data!.rating})',
+          backgroundColor: Colors.green.shade100,
+          colorText: Colors.green.shade900,
+          duration: const Duration(seconds: 4),
+          icon: const Icon(Icons.verified_rounded, color: Colors.green),
+        );
       } else {
-        Get.snackbar('Error', res.message, backgroundColor: Colors.red.shade100);
+        Get.snackbar(
+          'PAN Verification Failed',
+          res.message.isNotEmpty ? res.message : 'Invalid PAN card or details. Verification failed.',
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade900,
+          duration: const Duration(seconds: 5),
+          icon: const Icon(Icons.error_outline_rounded, color: Colors.red),
+        );
       }
     } catch (e) {
-      Get.snackbar('Error', 'Could not fetch CIBIL score for $pan',
-          backgroundColor: Colors.red.shade100);
+      Get.snackbar(
+        'Verification Error',
+        'Could not verify PAN or fetch CIBIL score for $pan: $e',
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade900,
+        duration: const Duration(seconds: 5),
+      );
     } finally {
       isChecking.value = false;
     }

@@ -40,6 +40,10 @@ class CibilScoreModel {
   final String reportId;
   final List<CibilFactorModel> factors;
   final List<String> tips;
+  final String? pan;
+  final bool panVerified;
+  final String panStatus;
+  final String bureau;
 
   const CibilScoreModel({
     required this.score,
@@ -49,6 +53,10 @@ class CibilScoreModel {
     required this.reportId,
     required this.factors,
     required this.tips,
+    this.pan,
+    this.panVerified = true,
+    this.panStatus = 'EXISTING AND VALID',
+    this.bureau = 'TransUnion CIBIL (Cyrus)',
   });
 
   factory CibilScoreModel.fromJson(Map<String, dynamic> json) {
@@ -65,6 +73,10 @@ class CibilScoreModel {
               .toList() ??
           [],
       tips: (json['tips'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      pan: json['pan']?.toString(),
+      panVerified: json['pan_verified'] == true || json['panVerified'] == true,
+      panStatus: json['pan_status']?.toString() ?? json['panStatus']?.toString() ?? 'EXISTING AND VALID',
+      bureau: json['bureau']?.toString() ?? 'TransUnion CIBIL (Cyrus)',
     );
   }
 
@@ -76,5 +88,9 @@ class CibilScoreModel {
     'report_id': reportId,
     'factors': factors.map((e) => e.toJson()).toList(),
     'tips': tips,
+    'pan': pan,
+    'pan_verified': panVerified,
+    'pan_status': panStatus,
+    'bureau': bureau,
   };
 }

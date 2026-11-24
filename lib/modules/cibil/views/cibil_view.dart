@@ -162,40 +162,95 @@ class CibilView extends GetView<CibilController> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                TextField(
-                  controller: controller.panController,
-                  textCapitalization: TextCapitalization.characters,
-                  maxLength: 10,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2.0,
-                    fontSize: 16,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'ABCDE1234F',
-                    hintStyle: TextStyle(
-                      color: Colors.grey.shade400,
-                      letterSpacing: 1.5,
-                      fontWeight: FontWeight.normal,
-                    ),
-                    counterText: '',
-                    prefixIcon: const Icon(Icons.credit_card_rounded, color: AppColors.primaryBlue),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.border),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
-                    ),
-                    filled: true,
-                    fillColor: AppColors.background,
-                  ),
-                ),
+                Obx(() {
+                  final panOk = controller.isPanVerified.value;
+                  final panLoading = controller.isVerifyingPan.value;
+                  final panData = controller.panVerifiedData.value;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: controller.panController,
+                        textCapitalization: TextCapitalization.characters,
+                        maxLength: 10,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2.0,
+                          fontSize: 16,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'ABCDE1234F',
+                          hintStyle: TextStyle(
+                            color: Colors.grey.shade400,
+                            letterSpacing: 1.5,
+                            fontWeight: FontWeight.normal,
+                          ),
+                          counterText: '',
+                          prefixIcon: const Icon(Icons.badge_outlined, color: AppColors.primaryBlue),
+                          suffixIcon: Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: panLoading
+                                ? const Padding(
+                                    padding: EdgeInsets.all(12),
+                                    child: SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                                  )
+                                : panOk
+                                    ? const Icon(Icons.verified_rounded, color: AppColors.success, size: 22)
+                                    : TextButton(
+                                        onPressed: controller.verifyPanWithNsdl,
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: AppColors.primaryBlue,
+                                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                                        ),
+                                        child: const Text('Verify', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12.5)),
+                                      ),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.border),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: panOk ? AppColors.success : AppColors.border,
+                              width: panOk ? 1.5 : 1,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2),
+                          ),
+                          filled: true,
+                          fillColor: AppColors.background,
+                        ),
+                      ),
+                      if (panOk && panData != null)
+                        Container(
+                          margin: const EdgeInsets.only(top: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDF4),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.verified_rounded, color: AppColors.success, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  ((panData['isLiveVerified'] == true || panData['isGovernmentVerified'] == true) && (panData['fullName'] != null && panData['fullName'] != 'PAN CARD HOLDER'))
+                                      ? 'NSDL Verified: ${panData['fullName']} • ${panData['status'] ?? 'VALID'}'
+                                      : 'NSDL Verified: ${controller.panController.text.trim().toUpperCase()} • ${panData['status'] ?? 'EXISTING AND VALID'}',
+                                  style: const TextStyle(fontSize: 11.5, color: AppColors.success, fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  );
+                }),
 
                 const SizedBox(height: 16),
 
@@ -625,13 +680,13 @@ class CibilView extends GetView<CibilController> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.verified_user_rounded, color: Colors.white, size: 13),
+                      const Icon(Icons.verified_user_rounded, color: Colors.greenAccent, size: 14),
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
                           controller.currentPan.value.isNotEmpty
-                              ? 'PAN: ${controller.currentPan.value}'
-                              : 'ID: ${report.reportId}',
+                              ? 'PAN: ${controller.currentPan.value} • Verified'
+                              : 'PAN Verified • ID: ${report.reportId}',
                           overflow: TextOverflow.ellipsis,
                           style: AppTypography.micro.copyWith(
                             color: Colors.white,
@@ -709,6 +764,11 @@ class CibilView extends GetView<CibilController> {
                   Text(
                     'Out of 900',
                     style: AppTypography.micro.copyWith(color: Colors.white.withValues(alpha: 0.7)),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    report.bureau,
+                    style: AppTypography.micro.copyWith(color: Colors.white.withValues(alpha: 0.85), fontSize: 9.5, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),

@@ -69,4 +69,9 @@ class ApiEndpoints {
   static const String notificationsList = '/notifications/list';
   static const String notificationsReadAll = '/notifications/read-all';
   static const String offersList = '/offers/list';
+
+  // Cashfree Payment Gateway (UPI Only)
+  static const String cashfreeCreateOrder = '/payment/cashfree/create-order';
+  static const String cashfreeVerifyAndRecharge = '/payment/cashfree/verify-and-recharge';
+  static const String cashfreeOrder = '/payment/cashfree/order';
 }

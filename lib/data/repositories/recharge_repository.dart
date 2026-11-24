@@ -190,4 +190,60 @@ class RechargeRepository {
       fromJson: (json) => PaymentResultModel.fromJson(json as Map<String, dynamic>),
     );
   }
+
+  // Cashfree Payment Gateway (UPI Only)
+  Future<ApiResponse<Map<String, dynamic>>> createCashfreeOrder({
+    required double amount,
+    required String mobile,
+    required String operator,
+    required String circle,
+    required String planId,
+    required String serviceType,
+    String purpose = 'recharge',
+  }) async {
+    return await _client.post<Map<String, dynamic>>(
+      ApiEndpoints.cashfreeCreateOrder,
+      data: {
+        'amount': amount,
+        'mobile': mobile,
+        'operator': operator,
+        'circle': circle,
+        'planId': planId,
+        'serviceType': serviceType,
+        'purpose': purpose,
+      },
+      fromJson: (json) => Map<String, dynamic>.from(json as Map),
+    );
+  }
+
+  Future<ApiResponse<PaymentResultModel>> verifyAndRechargeCashfree({
+    required String orderId,
+    required double amount,
+    required String mobile,
+    required String operator,
+    required String circle,
+    required String planId,
+    required String serviceType,
+  }) async {
+    return await _client.post<PaymentResultModel>(
+      ApiEndpoints.cashfreeVerifyAndRecharge,
+      data: {
+        'orderId': orderId,
+        'amount': amount,
+        'mobile': mobile,
+        'operator': operator,
+        'circle': circle,
+        'planId': planId,
+        'serviceType': serviceType,
+      },
+      fromJson: (json) => PaymentResultModel.fromJson(json as Map<String, dynamic>),
+    );
+  }
+
+  Future<ApiResponse<Map<String, dynamic>>> getCashfreeOrderStatus(String orderId) async {
+    return await _client.get<Map<String, dynamic>>(
+      '${ApiEndpoints.cashfreeOrder}/$orderId',
+      fromJson: (json) => Map<String, dynamic>.from(json as Map),
+    );
+  }
 }

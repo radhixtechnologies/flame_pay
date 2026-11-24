@@ -40,20 +40,6 @@ class FinancialServicesRepository {
   }) async {
     final cleanPan = pan.trim().toUpperCase();
 
-    // 1. Client-side Name vs PAN 5th character validation
-    if (cleanPan.length >= 5) {
-      final panFifthChar = cleanPan[4];
-      final nameParts = fullName.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-      final firstName = nameParts.isNotEmpty ? nameParts.first.toUpperCase() : '';
-      final lastName = nameParts.length > 1 ? nameParts.last.toUpperCase() : firstName;
-
-      if (!lastName.startsWith(panFifthChar) && !firstName.startsWith(panFifthChar)) {
-        return ApiResponse.error(
-          'Name mismatch! The name "$fullName" does not match PAN $cleanPan. According to Income Tax records, the surname must start with letter "$panFifthChar".',
-        );
-      }
-    }
-
     try {
       final res = await _apiClient.post<CibilScoreModel>(
         ApiEndpoints.cibilCheck,
