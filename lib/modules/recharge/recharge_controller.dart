@@ -596,12 +596,6 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
       ),
     );
   }
-    } catch (e) {
-      Get.snackbar('Error', e.toString(), backgroundColor: Colors.red.shade100);
-    } finally {
-      isProcessingPayment.value = false;
-    }
-  }
 
   Future<void> _executeRecharge(RechargePlanModel plan) async {
     isProcessingPayment.value = true;
