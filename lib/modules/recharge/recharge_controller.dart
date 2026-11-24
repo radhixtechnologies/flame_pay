@@ -463,6 +463,39 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
         return;
       }
 
+      // If order is simulated, avoid passing invalid token to native SDK
+      if (paymentSessionId.startsWith('session_sim_')) {
+        final shouldSimulatePay = await Get.defaultDialog<bool>(
+          title: 'Cashfree Test Mode',
+          titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
+          content: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(
+              'Simulate successful payment of ₹${amount.toStringAsFixed(2)} to test recharge flow?',
+              textAlign: TextAlign.center,
+            ),
+          ),
+          textConfirm: 'Confirm Test Payment',
+          confirmTextColor: Colors.white,
+          buttonColor: const Color(0xFFF97316),
+          onConfirm: () => Get.back(result: true),
+          textCancel: 'Cancel',
+          onCancel: () => Get.back(result: false),
+        );
+        if (shouldSimulatePay == true) {
+          _verifyPaymentAndExecuteRecharge(
+            orderId: orderId,
+            amount: amount,
+            mobile: mobile,
+            operator: operator,
+            circle: circle,
+            planId: planId,
+            serviceType: serviceType,
+          );
+        }
+        return;
+      }
+
       // 2. Open Cashfree's Official Default Checkout Sheet
       final cfGateway = CFPaymentGatewayService();
       cfGateway.setCallback(
