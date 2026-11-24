@@ -639,25 +639,37 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
   }) {
     Get.showOverlay(
       asyncFunction: () async {
-        final verifyRes = await _repo.verifyAndRechargeCashfree(
-          orderId: orderId,
-          amount: amount,
-          mobile: mobile,
-          operator: operator,
-          circle: circle,
-          planId: planId,
-          serviceType: serviceType,
-        );
+        try {
+          final verifyRes = await _repo.verifyAndRechargeCashfree(
+            orderId: orderId,
+            amount: amount,
+            mobile: mobile,
+            operator: operator,
+            circle: circle,
+            planId: planId,
+            serviceType: serviceType,
+          );
 
-        if (verifyRes.success && verifyRes.data != null) {
-          if (Get.isRegistered<HomeController>()) {
-            Get.find<HomeController>().fetchDashboardData();
+          if (verifyRes.success && verifyRes.data != null) {
+            if (Get.isRegistered<HomeController>()) {
+              Get.find<HomeController>().fetchDashboardData();
+            }
+            Get.off(() => PaymentSuccessView(result: verifyRes.data!));
+          } else {
+            Get.snackbar(
+              'Payment Status',
+              verifyRes.message.isNotEmpty ? verifyRes.message : 'Recharge verification pending.',
+              backgroundColor: Colors.orange.shade100,
+              duration: const Duration(seconds: 4),
+            );
           }
-          Get.off(() => PaymentSuccessView(result: verifyRes.data!));
-        } else {
+        } catch (e) {
+          final errStr = e.toString().replaceAll('Exception: ', '');
           Get.snackbar(
-            'Recharge Status',
-            verifyRes.message.isNotEmpty ? verifyRes.message : 'Recharge verification pending.',
+            'Payment Notice',
+            errStr.contains('not completed')
+                ? 'Payment is not completed yet. Please complete the payment on Cashfree.'
+                : errStr,
             backgroundColor: Colors.orange.shade100,
             duration: const Duration(seconds: 4),
           );
