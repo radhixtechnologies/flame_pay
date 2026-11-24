@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cferrorresponse/cferrorresponse.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpayment/cfwebcheckoutpayment.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfpaymentgateway/cfpaymentgatewayservice.dart';
+import 'package:flutter_cashfree_pg_sdk/api/cfsession/cfsession.dart';
+import 'package:flutter_cashfree_pg_sdk/utils/cfenums.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/validators.dart';
 import '../../data/models/operator_model.dart';
@@ -449,112 +454,22 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
 
       final orderData = orderRes.data!;
       final orderId = (orderData['orderId'] ?? '').toString();
-      final upiIntentUrl = (orderData['upiIntentUrl'] ?? '').toString();
+      final paymentSessionId = (orderData['paymentSessionId'] ?? '').toString();
       final checkoutUrl = (orderData['checkoutUrl'] ?? '').toString();
-      final isSimulated = orderData['isSimulated'] == true;
+      final envString = (orderData['environment'] ?? 'PROD').toString().toUpperCase();
 
-      if (orderId.isEmpty) {
-        Get.snackbar('Error', 'Invalid order generated', backgroundColor: Colors.red.shade100);
+      if (orderId.isEmpty || paymentSessionId.isEmpty) {
+        Get.snackbar('Error', 'Invalid Cashfree order generated', backgroundColor: Colors.red.shade100);
         return;
       }
 
-      // If in sandbox simulated mode (before merchant keys are active)
-      if (isSimulated) {
-        final shouldSimulatePay = await Get.defaultDialog<bool>(
-          title: 'Cashfree Sandbox Mode',
-          titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
-          content: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Column(
-              children: [
-                const Icon(Icons.bolt_rounded, size: 48, color: Color(0xFFF97316)),
-                const SizedBox(height: 10),
-                Text(
-                  'Order ID: $orderId\nAmount: ₹${amount.toStringAsFixed(2)}\nGateway: Cashfree (UPI Only)',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 13, height: 1.4),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Simulate successful UPI payment to test live Cyrus recharge?',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-          textConfirm: 'Simulate UPI Success',
-          confirmTextColor: Colors.white,
-          buttonColor: const Color(0xFFF97316),
-          onConfirm: () => Get.back(result: true),
-          textCancel: 'Cancel',
-          onCancel: () => Get.back(result: false),
-        );
-
-        if (shouldSimulatePay != true) return;
-      } else {
-        // Launch live Cashfree UPI Intent / Web Checkout
-        bool launched = false;
-        final targetUrl = upiIntentUrl.isNotEmpty ? upiIntentUrl : checkoutUrl;
-        if (targetUrl.isNotEmpty) {
-          try {
-            final uri = Uri.parse(targetUrl);
-            launched = await launchUrl(
-              uri,
-              mode: targetUrl.startsWith('upi://')
-                  ? LaunchMode.externalApplication
-                  : LaunchMode.inAppBrowserView,
-            );
-          } catch (_) {}
-        }
-
-        if (!launched && checkoutUrl.isNotEmpty && checkoutUrl != targetUrl) {
-          try {
-            final uri = Uri.parse(checkoutUrl);
-            await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
-          } catch (_) {}
-        }
-
-        // Show dialog asking user to confirm after paying in their UPI app
-        final confirmed = await Get.defaultDialog<bool>(
-          title: 'Complete UPI Payment',
-          titleStyle: const TextStyle(fontWeight: FontWeight.bold),
-          content: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(height: 14),
-                Text(
-                  'Please complete the payment of ₹${amount.toStringAsFixed(2)} in your UPI app (Google Pay / PhonePe / Paytm).',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Tap "I Have Paid" once money is deducted.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-          textConfirm: 'I Have Paid',
-          confirmTextColor: Colors.white,
-          buttonColor: Colors.green,
-          onConfirm: () => Get.back(result: true),
-          textCancel: 'Cancel',
-          onCancel: () => Get.back(result: false),
-        );
-
-        if (confirmed != true) return;
-      }
-
-      // 2. Verify Payment on Backend and Execute Cyrus Recharge
-      Get.showOverlay(
-        asyncFunction: () async {
-          final verifyRes = await _repo.verifyAndRechargeCashfree(
-            orderId: orderId,
+      // 2. Open Cashfree's Official Default Checkout Sheet
+      final cfGateway = CFPaymentGatewayService();
+      cfGateway.setCallback(
+        (String verifiedOrderId) {
+          // Cashfree Sheet completed successfully -> verify and execute recharge!
+          _verifyPaymentAndExecuteRecharge(
+            orderId: verifiedOrderId.isNotEmpty ? verifiedOrderId : orderId,
             amount: amount,
             mobile: mobile,
             operator: operator,
@@ -562,40 +477,125 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
             planId: planId,
             serviceType: serviceType,
           );
+        },
+        (CFErrorResponse error, String failedOrderId) {
+          Get.snackbar(
+            'Payment Notice',
+            error.getMessage() ?? 'Payment was cancelled.',
+            backgroundColor: Colors.orange.shade100,
+          );
+        },
+      );
 
-          if (verifyRes.success && verifyRes.data != null) {
-            // Update Home balance / transactions if Home controller is registered
-            if (Get.isRegistered<HomeController>()) {
-              Get.find<HomeController>().fetchDashboardData();
-            }
-            Get.off(() => PaymentSuccessView(result: verifyRes.data!));
-          } else {
-            Get.snackbar(
-              'Recharge Status',
-              verifyRes.message.isNotEmpty ? verifyRes.message : 'Recharge verification pending.',
-              backgroundColor: Colors.orange.shade100,
-              duration: const Duration(seconds: 4),
+      try {
+        final cfSession = CFSessionBuilder()
+            .setEnvironment(envString == 'PROD' ? CFEnvironment.PRODUCTION : CFEnvironment.SANDBOX)
+            .setOrderId(orderId)
+            .setPaymentSessionId(paymentSessionId)
+            .build();
+
+        final cfPayment = CFWebCheckoutPaymentBuilder()
+            .setSession(cfSession)
+            .build();
+
+        cfGateway.doPayment(cfPayment);
+      } catch (sdkError) {
+        // Fallback: If SDK throws or is unsupported, open Cashfree checkout sheet in In-App Browser View
+        if (checkoutUrl.isNotEmpty) {
+          final uri = Uri.parse(checkoutUrl);
+          await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+
+          final confirmed = await Get.defaultDialog<bool>(
+            title: 'Payment Completed?',
+            content: const Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                'Did you complete the payment in the Cashfree checkout window?',
+                textAlign: TextAlign.center,
+              ),
+            ),
+            textConfirm: 'Yes, Confirm Recharge',
+            confirmTextColor: Colors.white,
+            buttonColor: Colors.green,
+            onConfirm: () => Get.back(result: true),
+            textCancel: 'Cancel',
+            onCancel: () => Get.back(result: false),
+          );
+
+          if (confirmed == true) {
+            _verifyPaymentAndExecuteRecharge(
+              orderId: orderId,
+              amount: amount,
+              mobile: mobile,
+              operator: operator,
+              circle: circle,
+              planId: planId,
+              serviceType: serviceType,
             );
           }
-        },
-        loadingWidget: const Center(
-          child: Card(
-            child: Padding(
-              padding: EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Verifying Cashfree UPI Payment...', style: TextStyle(fontWeight: FontWeight.bold)),
-                  SizedBox(height: 6),
-                  Text('Activating live recharge with operator...', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                ],
-              ),
+        }
+      }
+    } catch (e) {
+      Get.snackbar('Error', e.toString(), backgroundColor: Colors.red.shade100);
+    } finally {
+      isProcessingPayment.value = false;
+    }
+  }
+
+  void _verifyPaymentAndExecuteRecharge({
+    required String orderId,
+    required double amount,
+    required String mobile,
+    required String operator,
+    required String circle,
+    required String planId,
+    required String serviceType,
+  }) {
+    Get.showOverlay(
+      asyncFunction: () async {
+        final verifyRes = await _repo.verifyAndRechargeCashfree(
+          orderId: orderId,
+          amount: amount,
+          mobile: mobile,
+          operator: operator,
+          circle: circle,
+          planId: planId,
+          serviceType: serviceType,
+        );
+
+        if (verifyRes.success && verifyRes.data != null) {
+          if (Get.isRegistered<HomeController>()) {
+            Get.find<HomeController>().fetchDashboardData();
+          }
+          Get.off(() => PaymentSuccessView(result: verifyRes.data!));
+        } else {
+          Get.snackbar(
+            'Recharge Status',
+            verifyRes.message.isNotEmpty ? verifyRes.message : 'Recharge verification pending.',
+            backgroundColor: Colors.orange.shade100,
+            duration: const Duration(seconds: 4),
+          );
+        }
+      },
+      loadingWidget: const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Verifying Cashfree UPI Payment...', style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: 6),
+                Text('Activating live recharge with operator...', style: TextStyle(fontSize: 12, color: Colors.grey)),
+              ],
             ),
           ),
         ),
-      );
+      ),
+    );
+  }
     } catch (e) {
       Get.snackbar('Error', e.toString(), backgroundColor: Colors.red.shade100);
     } finally {
