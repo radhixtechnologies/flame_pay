@@ -512,11 +512,30 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
           );
         },
         (CFErrorResponse error, String failedOrderId) {
-          Get.snackbar(
-            'Payment Notice',
-            error.getMessage() ?? 'Payment was cancelled.',
-            backgroundColor: Colors.orange.shade100,
-          );
+          final code = error.getCode() ?? '';
+          final msg = error.getMessage() ?? '';
+          debugPrint('[Cashfree SDK Error]: code=$code, msg=$msg');
+
+          if (code == 'installer_package_not_approved' || msg.contains('not a trusted source') || code.contains('installer')) {
+            // Sideloaded / Debug APK in production mode:
+            // Seamlessly open Cashfree's official Web Checkout sheet so payment proceeds smoothly!
+            _openWebCheckout(
+              checkoutUrl: checkoutUrl,
+              orderId: orderId,
+              amount: amount,
+              mobile: mobile,
+              operator: operator,
+              circle: circle,
+              planId: planId,
+              serviceType: serviceType,
+            );
+          } else {
+            Get.snackbar(
+              'Payment Notice',
+              msg.isNotEmpty ? msg : 'Payment was cancelled.',
+              backgroundColor: Colors.orange.shade100,
+            );
+          }
         },
       );
 
@@ -534,44 +553,78 @@ class RechargeController extends GetxController with GetSingleTickerProviderStat
         cfGateway.doPayment(cfPayment);
       } catch (sdkError) {
         // Fallback: If SDK throws or is unsupported, open Cashfree checkout sheet in In-App Browser View
-        if (checkoutUrl.isNotEmpty) {
-          final uri = Uri.parse(checkoutUrl);
-          await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
-
-          final confirmed = await Get.defaultDialog<bool>(
-            title: 'Payment Completed?',
-            content: const Padding(
-              padding: EdgeInsets.all(12),
-              child: Text(
-                'Did you complete the payment in the Cashfree checkout window?',
-                textAlign: TextAlign.center,
-              ),
-            ),
-            textConfirm: 'Yes, Confirm Recharge',
-            confirmTextColor: Colors.white,
-            buttonColor: Colors.green,
-            onConfirm: () => Get.back(result: true),
-            textCancel: 'Cancel',
-            onCancel: () => Get.back(result: false),
-          );
-
-          if (confirmed == true) {
-            _verifyPaymentAndExecuteRecharge(
-              orderId: orderId,
-              amount: amount,
-              mobile: mobile,
-              operator: operator,
-              circle: circle,
-              planId: planId,
-              serviceType: serviceType,
-            );
-          }
-        }
+        await _openWebCheckout(
+          checkoutUrl: checkoutUrl,
+          orderId: orderId,
+          amount: amount,
+          mobile: mobile,
+          operator: operator,
+          circle: circle,
+          planId: planId,
+          serviceType: serviceType,
+        );
       }
     } catch (e) {
       Get.snackbar('Error', e.toString(), backgroundColor: Colors.red.shade100);
     } finally {
       isProcessingPayment.value = false;
+    }
+  }
+
+  Future<void> _openWebCheckout({
+    required String checkoutUrl,
+    required String orderId,
+    required double amount,
+    required String mobile,
+    required String operator,
+    required String circle,
+    required String planId,
+    required String serviceType,
+  }) async {
+    if (checkoutUrl.isEmpty) {
+      Get.snackbar('Error', 'Unable to open checkout URL.', backgroundColor: Colors.red.shade100);
+      return;
+    }
+    try {
+      final uri = Uri.parse(checkoutUrl);
+      bool launched = false;
+      try {
+        launched = await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      } catch (_) {}
+      if (!launched) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+
+      final confirmed = await Get.defaultDialog<bool>(
+        title: 'Payment Completed?',
+        content: const Padding(
+          padding: EdgeInsets.all(12),
+          child: Text(
+            'Did you complete the payment in the Cashfree checkout window?',
+            textAlign: TextAlign.center,
+          ),
+        ),
+        textConfirm: 'Yes, Confirm Recharge',
+        confirmTextColor: Colors.white,
+        buttonColor: Colors.green,
+        onConfirm: () => Get.back(result: true),
+        textCancel: 'Cancel',
+        onCancel: () => Get.back(result: false),
+      );
+
+      if (confirmed == true) {
+        _verifyPaymentAndExecuteRecharge(
+          orderId: orderId,
+          amount: amount,
+          mobile: mobile,
+          operator: operator,
+          circle: circle,
+          planId: planId,
+          serviceType: serviceType,
+        );
+      }
+    } catch (e) {
+      debugPrint('[Cashfree Web Checkout Error]: $e');
     }
   }
 
